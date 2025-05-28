@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🌤 Weather & Crop Suggestion | Bharat Farms</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body {
+      background: linear-gradient(to right, #d0f0c0, #f0fff3);
+      min-height: 100vh;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      background-color: #ffffffdd;
+      border-radius: 20px;
+      padding: 40px 30px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 960px;
+    }
+    h2 {
+      font-weight: 700;
+      color: #2f4f4f;
+    }
+    p {
+      color: #555;
+      font-size: 1.05rem;
+    }
+    iframe {
+      width: 100%;
+      height: 800px;
+      border: 0;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+    .footer-note {
+      font-size: 0.9rem;
+      color: #777;
+      text-align: center;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 class="text-center mb-3">🌾 Weather Forecast & AI Crop Advice</h2>
+    <p class="text-center mb-4">Using real-time weather and AI by Dwani to suggest crops suitable for upcoming seasons in your region.</p>
+    
+    <iframe src="http://127.0.0.1:5000/" title="Weather Crop Tool"></iframe>
+
+    <div class="footer-note">
+      📡 This system uses weather prediction and natural language processing to guide farmers with regional crop choices.
+    </div>
+  </div>
+</body>
+</html>
