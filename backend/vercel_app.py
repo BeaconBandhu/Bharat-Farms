@@ -1,4 +1,4 @@
-"""Vercel entrypoint (vercel.json -> services.bharat-farms.entrypoint).
+"""Vercel entrypoint (see vercel.json `builds`).
 
 Sets serverless-appropriate defaults, then exposes the FastAPI `app`:
   * SQLite in /tmp - the only writable path. Ephemeral: plots / watchlist /
@@ -16,4 +16,4 @@ os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/bharatfarms.db")
 os.environ.setdefault("INLINE_ANALYSIS", "true")
 os.environ.setdefault("ENABLE_SCHEDULER", "false")
 
-from app.main import app  # noqa: E402,F401
+from backend.app.main import app  # noqa: E402,F401

@@ -72,13 +72,12 @@ def status():
     }
 
 
-# Serve the static site from public/ (sits at backend/public). On Vercel the
-# platform serves that directory straight from the CDN, so we must NOT also
-# mount it (Vercel's docs are explicit about this); locally and on Render the
-# mount does the serving.
+# Serve the static site from the repo-root public/ directory. On Vercel the
+# @vercel/static build + routes in vercel.json serve public/ from the CDN, so
+# this mount is only exercised locally and on Render.
 if not os.environ.get("VERCEL"):
     _public = next(
-        (p for p in (_here.parents[1] / "public", _here.parents[2] / "public") if p.is_dir()),
+        (p for p in (_here.parents[2] / "public", _here.parents[1] / "public") if p.is_dir()),
         None,
     )
     if _public is not None:
