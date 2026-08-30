@@ -28,6 +28,7 @@ class Plot(SQLModel, table=True):
     area_hectares: float
     state: str | None = Field(default=None, index=True)
     district: str | None = None
+    agro_polygon_id: str | None = Field(default=None)
     locked_at: datetime = Field(default_factory=utcnow)
     created_at: datetime = Field(default_factory=utcnow)
 
@@ -40,6 +41,9 @@ class PlotAnalysis(SQLModel, table=True):
     thumbnails: list = Field(default_factory=list, sa_type=JSON)       # [{date, url}]
     inferred_crops: list = Field(default_factory=list, sa_type=JSON)   # [{crop, confidence, seasons, reason}]
     price_outlook: list = Field(default_factory=list, sa_type=JSON)    # [{crop, direction, ...}]
+    soil: dict = Field(default_factory=dict, sa_type=JSON)             # {moisture_m3_m3, surface_temp_c, ...}
+    accumulated: dict = Field(default_factory=dict, sa_type=JSON)      # {rain_mm, gdd_base10_c, days}
+    ndvi_source: str = Field(default="")                              # "agromonitoring" | "planetary-computer"
     summary_text: str = Field(default="", sa_type=Text)
     ai_model: str = Field(default="")
     error: str = Field(default="", sa_type=Text)

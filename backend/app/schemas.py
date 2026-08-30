@@ -30,9 +30,12 @@ class AnalysisOut(BaseModel):
     plot_id: int
     status: str
     ndvi_series: list[dict[str, Any]]
+    ndvi_source: str = ""
     thumbnails: list[dict[str, Any]]
     inferred_crops: list[dict[str, Any]]
     price_outlook: list[dict[str, Any]]
+    soil: dict[str, Any] = {}
+    accumulated: dict[str, Any] = {}
     summary_text: str
     ai_model: str
     error: str

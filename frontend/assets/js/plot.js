@@ -142,6 +142,26 @@
     } catch (e) {}
   }
 
+  function renderSoil(soil, acc) {
+    soil = soil || {}; acc = acc || {};
+    var sec = document.getElementById("soil-sec");
+    var cells = [];
+    if (soil.moisture_m3_m3 != null)
+      cells.push(["Soil moisture", (soil.moisture_m3_m3 * 100).toFixed(1) + " %vol"]);
+    if (soil.temp_10cm_c != null) cells.push(["Soil temp (10cm)", soil.temp_10cm_c + " °C"]);
+    if (soil.surface_temp_c != null) cells.push(["Surface temp", soil.surface_temp_c + " °C"]);
+    if (acc.rain_mm != null) cells.push(["Rain, last " + (acc.days || 120) + "d", acc.rain_mm + " mm"]);
+    if (acc.gdd_base10_c != null) cells.push(["GDD (base 10°C)", Math.round(acc.gdd_base10_c)]);
+    if (!cells.length) { sec.classList.add("d-none"); return; }
+    sec.classList.remove("d-none");
+    document.getElementById("soil").innerHTML = cells
+      .map(function (c) {
+        return '<div class="col-6 col-md-4"><div class="border rounded p-2"><div class="text-muted">' +
+          c[0] + '</div><div class="fw-semibold">' + c[1] + "</div></div></div>";
+      })
+      .join("");
+  }
+
   async function poll() {
     var a = await BF.api.get("/api/plots/" + id + "/analysis");
     var badge = document.getElementById("p-status");
@@ -150,8 +170,11 @@
 
     renderSat(a.thumbnails);
     renderNdvi(a.ndvi_series);
+    document.getElementById("ndvi-src").textContent =
+      a.ndvi_source === "agromonitoring" ? "Agromonitoring" : a.ndvi_source === "planetary-computer" ? "Planetary Computer" : "";
     renderCrops(a.inferred_crops, a.summary_text);
     renderOutlook(a.price_outlook);
+    renderSoil(a.soil, a.accumulated);
 
     var note = document.getElementById("p-note");
     if (a.error) { note.classList.remove("d-none"); note.textContent = a.error; }

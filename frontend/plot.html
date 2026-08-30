@@ -46,9 +46,14 @@
     </section>
 
     <section class="bf-card p-3 mt-3">
-      <h2 class="h6">Vegetation index (NDVI) over time</h2>
+      <h2 class="h6">Vegetation index (NDVI) over time <span id="ndvi-src" class="badge bg-light text-muted fw-normal"></span></h2>
       <canvas id="ndvi" height="90"></canvas>
       <p class="small text-muted mb-0">Green-up peaks reveal the growing seasons used to infer the crop cycle.</p>
+    </section>
+
+    <section id="soil-sec" class="bf-card p-3 mt-3 d-none">
+      <h2 class="h6">Soil &amp; accumulated weather <span class="badge bg-light text-muted fw-normal">Agromonitoring</span></h2>
+      <div id="soil" class="row g-3 small"></div>
     </section>
 
     <section class="mt-3">

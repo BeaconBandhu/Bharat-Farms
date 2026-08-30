@@ -5,8 +5,9 @@ A plot-driven crop-intelligence platform for Indian farmers.
 Lock a field on the map and Bharat Farms:
 
 1. **Pulls its satellite history** — Sentinel-2 true-colour thumbnails + an NDVI
-   time-series for the exact polygon, back to 2016 (Microsoft Planetary Computer,
-   free, no signup).
+   time-series for the exact polygon (Microsoft Planetary Computer, free, no
+   signup; Agromonitoring's per-polygon NDVI stats when `AGRO_API_KEY` is set),
+   plus current soil moisture / temperature and accumulated rainfall & GDD.
 2. **Infers the crops usually grown there** — from the NDVI seasonal pattern +
    regional cropping priors, sharpened by OpenAI when a key is set.
 3. **Forecasts the upcoming market value** of those crops — trend + seasonality
@@ -31,21 +32,26 @@ crop-health check (OpenAI vision).
 ```
 backend/     FastAPI (Python) — JSON API under /api/* + serves the frontend
   app/
-    routers/    plots, analysis, prices, news, voice, weather, health, admin
-    services/   openai_client, satellite, crop_history, prices, forecast,
+    routers/    plots, analysis, prices, news, voice, weather, health,
+                recommend, admin
+    services/   openai_client, satellite, agro, crop_history, prices, forecast,
                 news_feed, geocode, region_priors, analysis_runner
     jobs/       daily_refresh  (prices + news; run by APScheduler or cron)
-frontend/    Static HTML + Bootstrap + Leaflet + Chart.js (vanilla JS, no build)
+frontend/    The original Bharat Farms site (farmersrights.org-derived theme,
+             rehosted), wired to the API. Bootstrap 5 + Leaflet + Chart.js,
+             vanilla JS, no build. New feature pages: map.html, plot.html, news.html
 render.yaml  One Render web service (disk-backed SQLite + in-process scheduler)
 ```
 
 | Concern | Choice |
 |---|---|
 | Backend | FastAPI + SQLModel (SQLite) |
-| Frontend | Static HTML / Bootstrap 5 / Leaflet + Leaflet-Geoman / Chart.js |
+| Frontend | The pre-existing site files, restored + API-wired (`index.html` + `market/weather/crop-health/speech_stt/smart-crop/revenue`); CoreTrek theme CSS/fonts rehosted from farmersrights.org into `frontend/css` `frontend/fonts`. The theme's CMS JS is *not* rehosted, so the header is a small custom bar. |
+| New pages | `map.html` (draw/lock a plot), `plot.html` (satellite report), `news.html` |
 | Accounts | None — a browser `localStorage` device id keys plots & watchlist |
 | Vision / STT / TTS | OpenAI API (`OPENAI_*` models, all configurable) |
-| Plot imagery | Sentinel-2 L2A via Microsoft Planetary Computer (free) |
+| Plot imagery | Sentinel-2 L2A via Microsoft Planetary Computer (free, no signup) |
+| Plot NDVI stats / soil / accumulated rain | Agromonitoring (`AGRO_API_KEY`) — preferred for NDVI; PC used as fallback |
 | Mandi prices | data.gov.in / Agmarknet resource `9ef84268-d588-465a-a308-a864a43d0070` |
 | Reverse geocoding | BigDataCloud (no key) → Nominatim fallback |
 | News | Google News RSS (no key) + OpenAI impact labelling |
@@ -53,7 +59,7 @@ render.yaml  One Render web service (disk-backed SQLite + in-process scheduler)
 
 Every external dependency **degrades gracefully**: with no keys set the app still
 maps plots, shows satellite history + NDVI, infers crops from regional priors,
-and lists raw news — the AI/price/weather layers just stay empty and say why.
+and lists raw news — the AI / price / weather / soil layers just stay empty and say why.
 
 ---
 
@@ -85,9 +91,10 @@ Open <http://127.0.0.1:8000>.
 
 | Env var | Get it from | Unlocks |
 |---|---|---|
-| `OPENAI_API_KEY` | <https://platform.openai.com/api-keys> | voice, photo diagnosis, AI crop inference, news impact labels |
+| `OPENAI_API_KEY` | <https://platform.openai.com/api-keys> | voice, photo diagnosis, AI crop inference, smart-crop recommendation, news impact labels |
 | `DATA_GOV_IN_API_KEY` | <https://data.gov.in> → profile → *Generate API key* | live mandi prices, price forecast |
-| `OPENWEATHER_API_KEY` | <https://openweathermap.org/api> | weather panel |
+| `OPENWEATHER_API_KEY` | <https://openweathermap.org/api> (new keys take ~1–2 h to activate) | weather panel |
+| `AGRO_API_KEY` | <https://agromonitoring.com> dashboard (own key — an OpenWeather key is rejected) | per-plot NDVI stats, soil moisture/temperature, accumulated rainfall & GDD on the plot report |
 
 `OPENAI_VISION_MODEL`, `OPENAI_STT_MODEL`, `OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`,
 `OPENAI_CHAT_MODEL` are all overridable in `.env` as OpenAI's line-up changes.
@@ -131,6 +138,7 @@ commented-out in `render.yaml`.
 | `GET /api/news?crop=&state=&impact=` · `POST /api/news/refresh` | regional news feed |
 | `POST /api/voice/stt` · `POST /api/voice/tts` · `POST /api/voice/assistant` | voice (multilingual) |
 | `POST /api/health/diagnose` | crop photo → diagnosis in chosen language |
+| `POST /api/recommend` | smart-crop recommendation from a short questionnaire |
 | `GET /api/weather?lat=&lon=` | current + 5-day forecast |
 | `GET /api/status` | which integrations are configured |
 

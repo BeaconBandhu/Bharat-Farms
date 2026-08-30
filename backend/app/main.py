@@ -13,7 +13,17 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .db import init_db
-from .routers import admin, analysis, health, news, plots, prices, voice, weather
+from .routers import (
+    admin,
+    analysis,
+    health,
+    news,
+    plots,
+    prices,
+    recommend,
+    voice,
+    weather,
+)
 
 settings = get_settings()
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
@@ -44,7 +54,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (plots, analysis, prices, news, voice, weather, health, admin):
+for module in (plots, analysis, prices, news, voice, weather, health, recommend, admin):
     app.include_router(module.router)
 
 
@@ -55,6 +65,7 @@ def status():
         "openai": settings.openai_enabled,
         "prices": bool(settings.data_gov_in_api_key),
         "weather": bool(settings.openweather_api_key),
+        "agro": bool(settings.agro_api_key),
     }
 
 

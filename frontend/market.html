@@ -1,89 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bharat Farms — Crop Market</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="icon" href="assets/favicon.svg" />
-  <link href="assets/css/app.css" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Analysis | Bharat Farms</title>
+  <link rel="icon" href="images/favicon-32x32.png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #dff5e1, #a8d5ba);
+      min-height: 100vh; padding: 2rem;
+      display: flex; align-items: flex-start; justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      background: #ffffffee; border-radius: 20px; padding: 30px;
+      max-width: 820px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .section-title { font-size: 1.25rem; font-weight: bold; margin: 1rem 0 .5rem; }
+    .price-box { border: 1px solid #ddd; border-radius: 10px; padding: 10px; text-align: center; }
+    .price-box h5 { margin: 0; font-weight: bold; }
+    .chart-box { background: #f9f9f9; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+    .up { color: #16a34a; } .down { color: #dc2626; } .flat { color: #6b7280; }
+    .ticker { overflow:hidden; white-space:nowrap; background:#0f172a; color:#e2e8f0; border-radius:10px; margin-bottom:1rem; }
+    .ticker-track { display:inline-block; padding:8px 0; animation: t 38s linear infinite; }
+    .ticker:hover .ticker-track { animation-play-state: paused; }
+    .ticker-item { padding: 0 1.4rem; font-variant-numeric: tabular-nums; }
+    @keyframes t { from { transform: translateX(0);} to { transform: translateX(-50%);} }
+  </style>
 </head>
 <body>
-  <nav class="navbar navbar-bf navbar-expand-lg">
-    <div class="container bf-container">
-      <a class="navbar-brand fw-bold" href="index.html">🌾 Bharat Farms</a>
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
-      <div class="collapse navbar-collapse" id="nav">
-        <div class="navbar-nav ms-auto">
-          <a class="nav-link" href="index.html">Dashboard</a>
-          <a class="nav-link" href="map.html">My Plots</a>
-          <a class="nav-link" href="market.html">Market</a>
-          <a class="nav-link" href="news.html">News</a>
-          <a class="nav-link" href="crop-health.html">Crop Health</a>
-          <a class="nav-link" href="weather.html">Weather</a>
-        </div>
+  <div class="card">
+    <h3 class="text-center mb-1">BHARAT FARMS</h3>
+    <p class="text-center text-muted mb-3">Market Analysis — live mandi (Agmarknet) prices, tracked like stocks</p>
+
+    <div class="ticker"><div id="ticker" class="ticker-track"></div></div>
+
+    <div class="row mb-2">
+      <div class="col">
+        <label class="form-label">State</label>
+        <select id="state" class="form-select"></select>
+      </div>
+      <div class="col">
+        <label class="form-label">Commodities (compare)</label>
+        <select id="cropSelect" class="form-select" multiple size="5"></select>
+        <div class="form-text">Ctrl/Cmd-click to pick several.</div>
       </div>
     </div>
-  </nav>
+    <button id="load" class="btn btn-success w-100 mb-2">Load prices</button>
 
-  <main class="container bf-container py-4">
-    <h1 class="h4 mb-2">Crop market</h1>
-    <p class="text-muted small">Live wholesale (mandi) modal prices from Agmarknet / data.gov.in, tracked like stock quotes.</p>
+    <div class="section-title">Price trend (modal ₹/quintal, last 90 days)</div>
+    <div class="chart-box"><canvas id="priceTrendsChart" height="200"></canvas></div>
 
-    <div class="ticker mb-4"><div id="ticker" class="ticker-track"></div></div>
+    <div id="quoteBoxes" class="row g-2 mb-3"></div>
 
-    <div class="row g-3">
-      <div class="col-lg-5">
-        <div class="bf-card p-3">
-          <h2 class="h6">Add to watchlist</h2>
-          <div class="row g-2">
-            <div class="col-7">
-              <input id="w-commodity" class="form-control form-control-sm" list="commodity-list" placeholder="Commodity e.g. Onion" />
-              <datalist id="commodity-list"></datalist>
-            </div>
-            <div class="col-5">
-              <select id="w-state" class="form-select form-select-sm"><option value="">All India</option></select>
-            </div>
-          </div>
-          <button id="w-add" class="btn btn-success btn-sm w-100 mt-2">Add</button>
-          <div id="w-suggest" class="small mt-2"></div>
-        </div>
-      </div>
-      <div class="col-lg-7">
-        <div class="bf-card p-3">
-          <h2 class="h6">Quote lookup</h2>
-          <div class="row g-2">
-            <div class="col-7">
-              <input id="q-commodity" class="form-control form-control-sm" list="commodity-list" placeholder="Commodity" />
-            </div>
-            <div class="col-5">
-              <select id="q-state" class="form-select form-select-sm"><option value="">All India</option></select>
-            </div>
-          </div>
-          <button id="q-go" class="btn btn-outline-success btn-sm w-100 mt-2">Get quote</button>
-          <div id="q-result" class="mt-2"></div>
-          <canvas id="q-chart" height="80" class="mt-2"></canvas>
-        </div>
-      </div>
+    <div class="section-title">Your watchlist</div>
+    <div class="row g-2 mb-2">
+      <div class="col"><input id="wCommodity" class="form-control" placeholder="Add commodity e.g. Onion" list="allCrops" /></div>
+      <div class="col-auto"><button id="wAdd" class="btn btn-outline-success">Add</button></div>
     </div>
+    <datalist id="allCrops"></datalist>
+    <div id="watchlist" class="table-responsive"></div>
+  </div>
 
-    <h2 class="h6 mt-4">Your watchlist</h2>
-    <div class="table-responsive bf-card p-0">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr><th>Commodity</th><th>Region</th><th class="text-end">Modal ₹/qtl</th><th class="text-end">Day change</th><th>45-day trend</th><th></th></tr>
-        </thead>
-        <tbody id="wl-body"><tr><td colspan="6" class="text-muted small">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="assets/js/device.js"></script>
   <script src="assets/js/api.js"></script>
-  <script src="assets/js/voice.js"></script>
-  <script src="assets/js/app.js"></script>
-  <script src="assets/js/market.js"></script>
+  <script>
+    var STATES = ["", "Andhra Pradesh","Assam","Bihar","Chhattisgarh","Gujarat","Haryana","Himachal Pradesh",
+      "Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Odisha","Punjab","Rajasthan",
+      "Tamil Nadu","Telangana","Uttar Pradesh","Uttarakhand","West Bengal"];
+    var COLORS = ["#f5a623","#27ae60","#2980b9","#8e44ad","#d35400","#16a085"];
+    var stateSel = document.getElementById("state");
+    STATES.forEach(function (s) {
+      var o = document.createElement("option"); o.value = s; o.textContent = s || "All India"; stateSel.appendChild(o);
+    });
+
+    var trendChart = new Chart(document.getElementById("priceTrendsChart").getContext("2d"), {
+      type: "line", data: { labels: [], datasets: [] },
+      options: { responsive: true, plugins: { legend: { position: "top" } }, scales: { y: { beginAtZero: false } } }
+    });
+
+    async function loadCommodities() {
+      try {
+        var r = await BF.api.get("/api/commodities");
+        var sel = document.getElementById("cropSelect");
+        var dl = document.getElementById("allCrops");
+        sel.innerHTML = ""; dl.innerHTML = "";
+        r.commodities.forEach(function (c) {
+          var o = document.createElement("option"); o.value = c; o.textContent = c;
+          if (["Wheat","Rice","Onion","Potato","Tomato"].indexOf(c) !== -1) o.selected = true;
+          sel.appendChild(o);
+          dl.appendChild(Object.assign(document.createElement("option"), { value: c }));
+        });
+      } catch (e) {}
+    }
+
+    async function loadPrices() {
+      var state = stateSel.value;
+      var picks = Array.from(document.getElementById("cropSelect").selectedOptions).map(function (o) { return o.value; });
+      if (!picks.length) return;
+      var qs = state ? "&state=" + encodeURIComponent(state) : "";
+
+      trendChart.data.datasets = [];
+      var allDates = {};
+      for (var i = 0; i < picks.length; i++) {
+        try {
+          var h = await BF.api.get("/api/prices/" + encodeURIComponent(picks[i]) + "/history?days=90" + qs);
+          h.forEach(function (p) { allDates[p.arrival_date] = 1; });
+          var m = {}; h.forEach(function (p) { m[p.arrival_date] = p.modal_price; });
+          trendChart.data.datasets.push({
+            label: picks[i], _map: m,
+            borderColor: COLORS[i % COLORS.length],
+            backgroundColor: COLORS[i % COLORS.length] + "22",
+            fill: false, tension: 0.3, pointRadius: 0, spanGaps: true
+          });
+        } catch (e) {}
+      }
+      trendChart.data.labels = Object.keys(allDates).sort();
+      trendChart.data.datasets.forEach(function (ds) {
+        ds.data = trendChart.data.labels.map(function (d) { return ds._map[d] != null ? ds._map[d] : null; });
+      });
+      trendChart.update();
+
+      var box = document.getElementById("quoteBoxes");
+      box.innerHTML = "";
+      for (var j = 0; j < picks.length; j++) {
+        try {
+          var q = await BF.api.get("/api/prices?commodity=" + encodeURIComponent(picks[j]) + qs);
+          var cls = q.change_pct > 0.5 ? "up" : q.change_pct < -0.5 ? "down" : "flat";
+          var arrow = cls === "up" ? "▲" : cls === "down" ? "▼" : "▬";
+          box.insertAdjacentHTML("beforeend",
+            '<div class="col-6 col-md-4"><div class="price-box"><h5>' + q.commodity + "</h5>" +
+            "<div>₹" + (q.modal_price != null ? q.modal_price.toLocaleString("en-IN") : "—") + "/q</div>" +
+            '<div class="' + cls + ' small">' + arrow + " " +
+            (q.change_pct != null ? (q.change_pct > 0 ? "+" : "") + q.change_pct + "%" : "—") + "</div></div></div>");
+        } catch (e) {
+          box.insertAdjacentHTML("beforeend",
+            '<div class="col-6 col-md-4"><div class="price-box"><h5>' + picks[j] + "</h5><div class='small text-muted'>no data</div></div></div>");
+        }
+      }
+    }
+
+    async function loadTicker() {
+      try {
+        var wl = await BF.api.get("/api/watchlist");
+        var t = document.getElementById("ticker");
+        if (!wl.length) { t.innerHTML = '<span class="ticker-item text-white-50">Watchlist empty</span>'; return; }
+        var items = wl.map(function (w) {
+          var q = w.quote;
+          if (!q) return '<span class="ticker-item">' + w.commodity + " —</span>";
+          var cls = q.change_pct > 0.5 ? "up" : q.change_pct < -0.5 ? "down" : "flat";
+          var arrow = cls === "up" ? "▲" : cls === "down" ? "▼" : "▬";
+          return '<span class="ticker-item">' + w.commodity.toUpperCase() + " ₹" +
+            (q.modal_price != null ? q.modal_price.toLocaleString("en-IN") : "—") +
+            ' <span class="' + cls + '">' + arrow + " " + (q.change_pct != null ? q.change_pct + "%" : "") + "</span></span>";
+        });
+        t.innerHTML = items.join("") + items.join("");
+      } catch (e) {}
+    }
+
+    async function loadWatchlist() {
+      var el = document.getElementById("watchlist");
+      try {
+        var wl = await BF.api.get("/api/watchlist");
+        if (!wl.length) { el.innerHTML = '<div class="text-muted small">Nothing on your watchlist yet.</div>'; return; }
+        el.innerHTML = '<table class="table table-sm"><thead><tr><th>Commodity</th><th>Region</th>' +
+          '<th class="text-end">Modal ₹/q</th><th class="text-end">Day change</th><th></th></tr></thead><tbody>' +
+          wl.map(function (w) {
+            var q = w.quote;
+            var chg = q && q.change_pct != null
+              ? '<span class="' + (q.change_pct > 0.5 ? "up" : q.change_pct < -0.5 ? "down" : "flat") + '">' +
+                (q.change_pct > 0 ? "+" : "") + q.change_pct + "%</span>" : "—";
+            return "<tr><td><strong>" + w.commodity + "</strong></td><td class='small text-muted'>" +
+              (w.state || "All India") + "</td><td class='text-end'>" +
+              (q && q.modal_price != null ? q.modal_price.toLocaleString("en-IN") : "—") +
+              "</td><td class='text-end'>" + chg + "</td>" +
+              "<td class='text-end'><button class='btn btn-sm btn-outline-danger' data-del='" + w.id + "'>✕</button></td></tr>";
+          }).join("") + "</tbody></table>";
+        el.querySelectorAll("[data-del]").forEach(function (b) {
+          b.addEventListener("click", async function () { await BF.api.del("/api/watchlist/" + b.dataset.del); refresh(); });
+        });
+      } catch (e) { el.innerHTML = '<div class="text-danger small">' + e.message + "</div>"; }
+    }
+
+    document.getElementById("wAdd").addEventListener("click", async function () {
+      var c = document.getElementById("wCommodity").value.trim();
+      if (!c) return;
+      try { await BF.api.post("/api/watchlist", { commodity: c, state: stateSel.value }); document.getElementById("wCommodity").value = ""; refresh(); }
+      catch (e) { alert(e.message); }
+    });
+    document.getElementById("load").addEventListener("click", loadPrices);
+
+    function refresh() { loadTicker(); loadWatchlist(); }
+    (async function () { await loadCommodities(); refresh(); })();
+  </script>
 </body>
 </html>

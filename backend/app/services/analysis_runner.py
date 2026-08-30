@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 
 from ..db import engine
 from ..models import Plot, PlotAnalysis, utcnow
-from . import crop_history, forecast, prices, satellite
+from . import agro, crop_history, forecast, prices, satellite
 from .geometry import padded_bbox, polygon_stats
 
 
@@ -56,16 +56,45 @@ async def run_analysis(plot_id: int) -> None:
             bbox = padded_bbox(stats["bbox"])
             geometry = stats["geometry"]
 
-            imagery = await run_in_threadpool(
-                satellite.plot_imagery, geometry, bbox
-            )
+            # --- Agromonitoring: per-polygon NDVI stats + soil + accumulated weather ---
+            soil_data: dict = {}
+            accumulated_data: dict = {}
+            agro_ndvi: list[dict] = []
+            if agro.enabled():
+                if not plot.agro_polygon_id:
+                    pid = await run_in_threadpool(
+                        agro.ensure_polygon,
+                        plot.name,
+                        plot.geojson,
+                        plot.area_hectares,
+                    )
+                    if pid:
+                        plot.agro_polygon_id = pid
+                        session.add(plot)
+                        session.commit()
+                if plot.agro_polygon_id:
+                    agro_ndvi = await run_in_threadpool(agro.ndvi_history, plot.agro_polygon_id)
+                    soil_data = await run_in_threadpool(agro.soil, plot.agro_polygon_id) or {}
+                    accumulated_data = await run_in_threadpool(
+                        agro.accumulated, plot.agro_polygon_id
+                    ) or {}
+
+            imagery = await run_in_threadpool(satellite.plot_imagery, geometry, bbox)
+
+            # Prefer Agromonitoring's cloud-screened per-polygon NDVI when we have it.
+            if len(agro_ndvi) >= 4:
+                ndvi_series = agro_ndvi
+                ndvi_source = "agromonitoring"
+            else:
+                ndvi_series = imagery["ndvi_series"]
+                ndvi_source = "planetary-computer" if ndvi_series else ""
 
             crop_info = await run_in_threadpool(
                 crop_history.infer_crops,
                 state=plot.state,
                 district=plot.district,
                 area_hectares=plot.area_hectares,
-                ndvi_series=imagery["ndvi_series"],
+                ndvi_series=ndvi_series,
                 thumbnails=imagery["thumbnails"],
             )
 
@@ -89,12 +118,15 @@ async def run_analysis(plot_id: int) -> None:
                 )
 
             analysis.thumbnails = _json_safe(imagery["thumbnails"])
-            analysis.ndvi_series = _json_safe(imagery["ndvi_series"])
+            analysis.ndvi_series = _json_safe(ndvi_series)
+            analysis.ndvi_source = ndvi_source
+            analysis.soil = _json_safe(soil_data)
+            analysis.accumulated = _json_safe(accumulated_data)
             analysis.inferred_crops = _json_safe(crop_info["inferred_crops"])
             analysis.price_outlook = _json_safe(outlook)
             analysis.summary_text = crop_info["summary_text"]
             analysis.ai_model = crop_info["ai_model"]
-            analysis.error = imagery.get("note", "")
+            analysis.error = imagery.get("note", "") if not ndvi_series else ""
             analysis.status = "ready"
         except Exception as exc:  # noqa: BLE001
             analysis.status = "error"

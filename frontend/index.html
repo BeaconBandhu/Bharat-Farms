@@ -1,157 +1,532 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bharat Farms — Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="icon" href="assets/favicon.svg" />
-  <link href="assets/css/app.css" rel="stylesheet" />
-</head>
-<body>
-  <nav class="navbar navbar-bf navbar-expand-lg">
-    <div class="container bf-container">
-      <a class="navbar-brand fw-bold" href="index.html">🌾 Bharat Farms</a>
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="nav">
-        <div class="navbar-nav ms-auto">
-          <a class="nav-link" href="index.html">Dashboard</a>
-          <a class="nav-link" href="map.html">My Plots</a>
-          <a class="nav-link" href="market.html">Market</a>
-          <a class="nav-link" href="news.html">News</a>
-          <a class="nav-link" href="crop-health.html">Crop Health</a>
-          <a class="nav-link" href="weather.html">Weather</a>
-        </div>
-      </div>
-    </div>
-  </nav>
-
-  <main class="container bf-container py-4">
-    <div class="bf-hero p-4 p-md-5 mb-4">
-      <h1 class="h3 mb-2">Grow smarter, earn better.</h1>
-      <p class="mb-3">
-        Lock a plot on the map and Bharat Farms pulls its satellite history, works out which
-        crops are usually grown there, tracks the live mandi rate like a stock, and flags
-        regional news that could move the price.
-      </p>
-      <a href="map.html" class="btn btn-light fw-semibold">Map a plot →</a>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-md-6 col-lg-3">
-        <div class="bf-card p-3 h-100">
-          <div class="fs-3">🗺️</div>
-          <h2 class="h6 mt-2">Plot mapping</h2>
-          <p class="small text-muted mb-2">Draw your field, lock it, get a satellite-backed profile.</p>
-          <a href="map.html" class="small">Open map</a>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="bf-card p-3 h-100">
-          <div class="fs-3">📈</div>
-          <h2 class="h6 mt-2">Crop market</h2>
-          <p class="small text-muted mb-2">Live mandi prices with day change and 45-day trend.</p>
-          <a href="market.html" class="small">Open market</a>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="bf-card p-3 h-100">
-          <div class="fs-3">📰</div>
-          <h2 class="h6 mt-2">Regional news</h2>
-          <p class="small text-muted mb-2">Headlines labelled good / bad for your crop and region.</p>
-          <a href="news.html" class="small">Open news</a>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="bf-card p-3 h-100">
-          <div class="fs-3">🩺</div>
-          <h2 class="h6 mt-2">Crop health</h2>
-          <p class="small text-muted mb-2">Photo diagnosis in your language.</p>
-          <a href="crop-health.html" class="small">Check a photo</a>
-        </div>
-      </div>
-    </div>
-
-    <h2 class="h5 mt-4 mb-3">Your locked plots</h2>
-    <div id="plots" class="row g-3">
-      <div class="col-12"><div class="text-muted">Loading…</div></div>
-    </div>
-
-    <h2 class="h5 mt-4 mb-3">Watchlist</h2>
-    <div class="ticker mb-2"><div id="ticker" class="ticker-track"></div></div>
-    <p class="small text-muted">Manage your watchlist on the <a href="market.html">Market</a> page.</p>
-
-    <div id="status-note" class="alert alert-warning small mt-3 d-none"></div>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/device.js"></script>
-  <script src="assets/js/api.js"></script>
-  <script src="assets/js/voice.js"></script>
-  <script src="assets/js/app.js"></script>
-  <script>
-    (async function () {
-      // Config note
-      try {
-        var st = await BF.api.get("/api/status");
-        var missing = [];
-        if (!st.openai) missing.push("OPENAI_API_KEY (voice, photo diagnosis, AI crop inference)");
-        if (!st.prices) missing.push("DATA_GOV_IN_API_KEY (mandi prices)");
-        if (!st.weather) missing.push("OPENWEATHER_API_KEY (weather)");
-        if (missing.length) {
-          var n = document.getElementById("status-note");
-          n.classList.remove("d-none");
-          n.innerHTML = "Some features are disabled until these keys are set in <code>backend/.env</code>:<br>• " + missing.join("<br>• ");
-        }
-      } catch (e) {}
-
-      // Plots
-      var wrap = document.getElementById("plots");
-      try {
-        var plots = await BF.api.get("/api/plots");
-        if (!plots.length) {
-          wrap.innerHTML = '<div class="col-12 text-muted">No plots yet. <a href="map.html">Map your first plot →</a></div>';
-        } else {
-          wrap.innerHTML = plots
-            .map(function (p) {
-              return (
-                '<div class="col-md-6 col-lg-4"><div class="bf-card p-3 h-100">' +
-                '<div class="d-flex justify-content-between"><strong>' + p.name + "</strong>" +
-                '<span class="badge bg-' + (p.analysis_status === "ready" ? "success" : p.analysis_status === "error" ? "danger" : "secondary") + '">' + p.analysis_status + "</span></div>" +
-                '<div class="small text-muted">' + (p.district || "?") + ", " + (p.state || "?") + " • " + p.area_hectares.toFixed(2) + " ha</div>" +
-                '<a class="btn btn-sm btn-outline-success mt-2" href="plot.html?id=' + p.id + '">Open report</a>' +
-                "</div></div>"
-              );
-            })
-            .join("");
-        }
-      } catch (e) {
-        wrap.innerHTML = '<div class="col-12 text-danger">Could not load plots: ' + e.message + "</div>";
-      }
-
-      // Ticker
-      try {
-        var wl = await BF.api.get("/api/watchlist");
-        var t = document.getElementById("ticker");
-        if (!wl.length) {
-          t.innerHTML = '<span class="ticker-item text-muted">Watchlist empty</span>';
-        } else {
-          var items = wl.map(function (w) {
-            var q = w.quote;
-            if (!q) return '<span class="ticker-item">' + w.commodity + " —</span>";
-            var cls = BF.fmt.dir(q.change_pct);
-            return (
-              '<span class="ticker-item">' + w.commodity.toUpperCase() + " " +
-              BF.fmt.inr(q.modal_price) + ' <span class="' + cls + '">' +
-              BF.fmt.arrow(q.change_pct) + " " + BF.fmt.pct(q.change_pct) + "</span></span>"
-            );
-          });
-          t.innerHTML = (items.join("") + items.join("")); // doubled for seamless scroll
-        }
-      } catch (e) {}
-    })();
+<html lang="en" prefix="dcterms: http://purl.org/dc/terms/#; og: http://ogp.me/ns/website#">
+ <head>
+  <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+  <!-- Start common head elements -->
+  <title>
+   BHARATH FARMS - Home
+  </title>
+  <meta charset="utf-8"/>
+  <meta content="CMS" data-ctchannel="default" data-ctdevice="name:generic, key: default" name="Generator"/>
+  <meta content="" name="Keywords"/>
+  <meta content="Farmers' Rights, agrobiodiversity and food security. This is a resource site for decision-makers, negotiators, practitioners and researchers on Farmers' Rights." name="Description"/>
+  <meta content="Farmers Rights - Home" property="og:title"/>
+  <meta content="website" property="og:type"/>
+  <meta content="https://www.farmersrights.org/" property="og:url"/>
+  <meta content="" property="og:image"/>
+  <meta content="Farmers' Rights, agrobiodiversity and food security. This is a resource site for decision-makers, negotiators, practitioners and researchers on Farmers' Rights." property="og:description"/>
+  <meta content="Farmers Rights" property="og:site_name"/>
+  <meta content="en_GB" property="og:locale"/>
+  <link href="https://www.farmersrights.org/search/" rel="Search"/>
+  <link href="https://www.farmersrights.org/" rel="canonical"/>
+  <link href="https://www.farmersrights.org/" hreflang="en-GB" lang="en-GB" rel="alternate" title="English (GB)" type="text/html"/>
+  <link href="https://www.farmersrights.org/hogar/" hreflang="es-ES" lang="es-ES" rel="alternate" title="Spanish, Spain" type="text/html"/>
+  <link href="https://www.farmersrights.org/accueil/" hreflang="fr-FR" lang="fr-FR" rel="alternate" title="French, France" type="text/html"/>
+  <script async="" nonce="" src="js/gtm.js">
   </script>
+  <script async="async" nonce="" src="js/corepublish.js">
+  </script>
+  
+  
+  <!-- End common head elements -->
+  <script async="async" src="js/sitecomponents.min.js">
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap" rel="stylesheet"/>
+  <link data-ctbrowsertype="chrome" href="css/style.min.css" media="all" rel="stylesheet" type="text/css"/>
+  <link href="css/styleprint.min.css" media="print" rel="stylesheet" type="text/css"/>
+  <link href="images/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
+  <link href="images/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
+  <link href="images/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
+  <link href="https://www.farmersrights.org/site.webmanifest" rel="manifest"/>
+  <link color="#207733" href="images/safari-pinned-tab.svg" rel="mask-icon"/>
+  <meta content="#207733" name="msapplication-TileColor"/>
+  <meta content="#ffffff" name="theme-color"/>
+  <style>
+    /* Standalone fixes: the CoreTrek theme JS is not rehosted, so pin the
+       header in normal flow and restore the top nav as a simple horizontal bar. */
+    body.page-loading { opacity: 1 !important; }
+    #header { position: static !important; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+    #header .main-top, #header .navbar { position: static !important; }
+    #placeholder-top .row { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1.5rem; padding:.4rem 0; }
+    #header nav.standard-menu { display:block !important; flex:1 1 100%; width:100%; }
+    #header nav.standard-menu .tile-content { display:block !important; }
+    #header .standard-menu .treelist.nav {
+      display:flex !important; flex-flow:row wrap !important; align-items:center;
+      gap:.1rem .4rem; margin:0; padding:.3rem 0; list-style:none; width:100%;
+    }
+    #header .standard-menu .treelist.nav > li { display:inline-flex !important; float:none !important; width:auto !important; }
+    #header .standard-menu .nav-link {
+      display:inline-block !important; color:#207733 !important; font-weight:700; font-size:.82rem;
+      padding:.3rem .5rem; white-space:nowrap; text-transform:uppercase; letter-spacing:.02em;
+    }
+    #header .standard-menu .nav-link:hover { text-decoration:underline; }
+    #placeholder-small-top-2 { background:#207733; }
+    #placeholder-small-top-2 .nav-link { color:#eaf6ec; }
+    #placeholder-collapse-top-1, #placeholder-collapse-top-2 { display:none; }
+    .image-carousel .carousel-item:not(.active) { display:none; }
+    .image-carousel .left.carousel-control, .image-carousel .right.carousel-control { display:none; }
+    main#main-content { position:relative; z-index:1; }
+    /* the CMS article thumbnails 404 (renditions gone) - collapse their empty frames */
+    .articlelist .thumbnail, .bannerlist .image-content, .infobanner-col.image { display:none; }
+    .articlelist .article.card { min-height:auto; }
+    /* AOS animation library isn't rehosted - reveal elements it would have shown */
+    [data-aos], [data-aos] * { opacity:1 !important; transform:none !important; }
+    .list-wrapper .articles { display:grid !important; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; }
+    .list-wrapper .article.card { border:1px solid #e2e2e2; border-radius:10px; padding:1rem; }
+  </style>
+ </head>
+ <body class="runtime-cid-267 runtime-ctid-90 frontpage default">
+  <noscript>
+   <iframe height="0" src="https://www.googletagmanager.com/ns.html?id=GTM-T8LKKLF" style="display:none; visibility:hidden" width="0">
+   </iframe>
+  </noscript>
+  <div id="pagecontainer">
+   <div class="d-print-none" id="content-link">
+    <a class="sr-only sr-only-focusable" href="#main-content">
+     Go to content
+    </a>
+   </div>
+   <noscript>
+    <div class="alert alert-danger mt-1 text-center" role="alert">
+     <strong>
+      JavaScript disabled!
+     </strong>
+     You must enable JavaScript for this website to work correctly.
+    </div>
+   </noscript>
+   <header id="header" class="d-print-none" style="background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.12)">
+    <div style="background:#207733">
+     <div class="container-md d-flex justify-content-end gap-2 py-1">
+      <a class="btn btn-sm btn-outline-light" href="crop-health.html">Crop Health</a>
+      <a class="btn btn-sm btn-outline-light" href="speech_stt.html">🗣️ Speech to Text</a>
+     </div>
+    </div>
+    <div class="container-md d-flex flex-wrap align-items-center py-2" style="gap:.25rem 1.25rem">
+     <a href="index.html" style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:#207733;text-decoration:none">Bharath Farms</a>
+     <nav class="d-flex flex-wrap align-items-center" style="gap:.1rem .35rem;margin-left:auto">
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="map.html">My Plots</a>
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="smart-crop.html">Smart Crop</a>
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="market.html">Market</a>
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="news.html">Crop News</a>
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="revenue.html">Revenue</a>
+      <a class="nav-link" style="color:#207733;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em;padding:.3rem .5rem;white-space:nowrap" href="weather.html">Weather</a>
+     </nav>
+    </div>
+   </header>
+   <div class="" id="content-backdrop">
+   </div>
+   <main id="main-content">
+    <div class="p-0" id="placeholder-content-1">
+     <div class="container-fluid">
+      <div class="row">
+       <div class="tile-common image-carousel">
+        <div class="tile-content">
+         <figure class="carousel-item active" style="margin:0"><img class="cp-mmarchive-image-default" src="assets/samples/farm.jpeg" alt="Farm field" style="width:100%;height:420px;object-fit:cover"></figure></div></div>
+      </div>
+     </div>
+    </div>
+    <div id="placeholder-content-2">
+     <div class="container-md">
+      <div class="row">
+       <article class="default full-view tile-common articledisplay col-12 top-articleview" data-articleid="359" data-templateid="4">
+        <div class="tile-content">
+         <header>
+          <h1>
+            "Grow Smarter, Earn Better — with Bharat Farms."
+          </h1>
+         </header>
+        </div>
+       </article>
+       <div class="infobanner-wrapper">
+        <div class="infobanner-col image">
+         <div class="fr-img-wrapper">
+          <img alt="Greetings from members of the Mkombezi CSB in Malawi. Photo: Viviana Meixner / FNI" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="3306" loading="lazy" property="thumbnailUrl" src="images/Photo_%20FNI%20Viviana%20Meixner%20Malawi%20%28002%29%20fixed.jpg%20%28thumbnail%29.jpg" srcset="images/Photo_%20FNI%20Viviana%20Meixner%20Malawi%20%28002%29%20fixed.jpg%20%28fullwidth%29.jpg 2x" title="Greetings from members of the Mkombezi CSB in Malawi. Photo: Viviana Meixner / FNI" width="540"/>
+         </div>
+        </div>
+        <div class="infobanner-col text">
+         <div class="fr-infobanner-txt-wrapper">
+          <div class="fr-infobanner-content">
+           <p class="fr-infobanner-paragraph">
+            To help farmers make informed decisions on crop selection based on seasonal patterns, soil type, weather forecasts, and real-time market prices, along with extra tools to boost productivity and revenue.
+              </p>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div id="placeholder-content-3">
+     <div class="container-fluid">
+      <div class="row">
+       <div class="tile-common bannerlist">
+        <div class="tile-content">
+         <article class="banner article odd list-view" data-articleid="223" data-templateid="4">
+          <div class="image-content d-print-none col-12 col-md-6 p-0">
+           <figure class="thumbnail list-thumbnail-default rellax">
+            <img alt="Photo: Regine Andersen / FNI" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="1314" loading="lazy" src="images/Photo%253A%20FNI%20Regine%20Andersen%252C%20Ghanpokhara%252C%20Nepal%252C%20Multiple%20cropping.jpg%20%28optimized_original%29.jpg" title="Photo: Regine Andersen / FNI" width="4032"/>
+           </figure>
+          </div>
+          <div class="text-content col-12 col-md-6 col-print-12">
+           <div class="inner-content odd">
+            <h3>
+             <a href="https://www.farmersrights.org/what-are-farmers-rights/" target="_self">
+              What are Farmers' Rights?
+             </a>
+            </h3>
+            <div class="main-content">
+             <div class="articleelement newtext body ckeditor" id="body-1385">
+              <p>
+               Basically, realizing Farmers' Rights means enabling farmers to maintain and develop crop genetic diversity, and recognizing and rewarding them for this indispensable contribution to the global pool of genetic resources and to local and global food security.
+              </p>
+             </div>
+            </div>
+            <div class="links">
+             <a class="d-print-none btn btn-primary" href="https://www.farmersrights.org/what-are-farmers-rights/" target="_self">
+              Read more
+             </a>
+            </div>
+           </div>
+          </div>
+         </article>
+         <article class="banner article even list-view" data-articleid="222" data-templateid="4">
+          <div class="image-content d-print-none col-12 col-md-6 p-0 order-md-2">
+           <figure class="thumbnail list-thumbnail-default rellax">
+            <img alt="Photo: Regine Andersen / FNI" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="2000" loading="lazy" src="images/Photo%253A%20Gammelt%20nettsted%20i%20ny%20PC.jpg%20%28optimized_original%29.jpg" title="Photo: Regine Andersen / FNI" width="1920"/>
+           </figure>
+          </div>
+          <div class="text-content col-12 col-md-6 col-print-12 justify-content-md-end">
+           <div class="inner-content even">
+            <h3>
+             <a href="https://www.farmersrights.org/about/" target="_self">
+              About this website
+             </a>
+            </h3>
+            <div class="main-content">
+             <div class="articleelement newtext body ckeditor" id="body-1384">
+              <p>
+Farm Assist is a smart farming platform that helps farmers decide which crop to grow based on weather, soil, season, and market prices. It offers crop predictions, revenue estimates, real-time price updates, weather alerts, and access to government schemes — all in one place.
+Our mission is to empower farmers with simple, data-driven tools to increase their productivity and income.
+
+              </p>
+             </div>
+            </div>
+            <div class="links">
+             <a class="d-print-none btn btn-primary" href="https://www.farmersrights.org/about/" target="_self">
+              About
+             </a>
+            </div>
+           </div>
+          </div>
+         </article>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div id="placeholder-content-6">
+     <div class="container">
+      <div class="row">
+       <div class="three-column tile-common articlelist full-list ordinary-list col-12" id="tile-2386">
+        <div class="tile-content">
+         <div class="top-content">
+          <div class="headercontent">
+           <h2>
+            <span>
+                Our Mission
+            </span>
+           </h2>
+           <p class="headercontent-intro">
+            To bridge the information gap between farmers and modern agricultural technologies, ensuring they have everything they need to make the best farming decisions — at their fingertips.
+           </p>
+           
+          </div>
+         </div>
+         <div class="list-wrapper">
+          <ul class="d-flex articles list-unstyled row">
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="848" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/projects/diversifarm-india/map-of-community-seed-banks-in-india/map-of-community-seed-banks-in-india" target="_self">
+              <div class="card-body">
+               <h3 property="headline">
+                Map of Community Seed Banks in India
+               </h3>
+               <footer class="byline">
+                Updated: 13.05.2025
+               </footer>
+              </div>
+             </a>
+            </article>
+           </li>
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="864" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/projects/diversifarm-india/first-national-level-diversifarm-india-seminar/diversifarm-india-national-seminar-community-seed-banks-in-times-of-change" target="_self">
+              <figure class="thumbnail list-thumbnail-default top-aligned">
+               <img alt="Seminar" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="4763" loading="lazy" property="thumbnailUrl" src="images/Seminar%20aPRIL.jpg%20%28thumbnail%29.webp" srcset="images/Seminar%20aPRIL.jpg%20%28fullwidth%29.webp 2x" title="Seminar" width="540"/>
+              </figure>
+              <div class="card-body">
+               <h3 property="headline">
+                DIVERSIFARM-India National Seminar: Community seed banks in times of change
+               </h3>
+               <footer class="byline">
+                Updated: 28.04.2025
+               </footer>
+              </div>
+             </a>
+            </article>
+           </li>
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="840" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/projects/diversifarm-india/diversifarm-india" target="_self">
+              <figure class="thumbnail list-thumbnail-default top-aligned">
+               <img alt="Photo: Centre for Indian Knowledge Systems (CIKS), Tamil Nadu" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="3756" loading="lazy" property="thumbnailUrl" src="images/Seedling%20shifting%20-%20Centre%20for%20Indian%20Knowledge%20Systems%20-%20CIKS%20-%20Tamil%20Nadu.jpg%20%28thumbnail%29.jpg" srcset="images/Seedling%20shifting%20-%20Centre%20for%20Indian%20Knowledge%20Systems%20-%20CIKS%20-%20Tamil%20Nadu.jpg%20%28fullwidth%29.jpg 2x" title="Photo: Centre for Indian Knowledge Systems (CIKS), Tamil Nadu" width="540"/>
+              </figure>
+              <div class="card-body">
+               <h3 property="headline">
+                DIVERSIFARM-India
+               </h3>
+               <footer class="byline">
+                Updated: 28.04.2025
+               </footer>
+               <div class="digest" property="description">
+                <p>
+                 DIVERSIFARM-India is a project designed to strengthen community seed banks, farmer-managed seed systems and Farmers’ Rights in India. It will provide an overview of community seed banks, invite them to share experiences through a joint platform, develop solutions to joint challenges and identify how best practices can be scaled out.
+                </p>
+               </div>
+              </div>
+             </a>
+            </article>
+           </li>
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="851" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/projects/diversifarm-india/list-of-community-seed-banks-per-state/list-of-community-seed-banks-in-india" target="_self">
+              <figure class="thumbnail list-thumbnail-default top-aligned">
+               <img alt="Seed exchange at Koraput District, Odisha, India. Photo: Women’ Organization for Rural Development (WORD)" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="4062" loading="lazy" property="thumbnailUrl" src="images/Seed%20exchange.JPG%20%28thumbnail%29.webp" srcset="images/Seed%20exchange.JPG%20%28fullwidth%29.webp 2x" title="Seed exchange at Koraput District, Odisha, India. Photo: Women’ Organization for Rural Development (WORD)" width="540"/>
+              </figure>
+              <div class="card-body">
+               <h3 property="headline">
+                List of Community Seed Banks in India
+               </h3>
+               <footer class="byline">
+                Updated: 31.03.2025
+               </footer>
+               <div class="digest" property="description">
+                <p>
+                 Here you will find an overview of community seed banks in India per state, with a brief presentation of each. This is work in progress, and new community seed bank presentations are being added as DIVERSIFARM-India evolves.
+                </p>
+               </div>
+              </div>
+             </a>
+            </article>
+           </li>
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="829" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/international-negotiations/plant-treaty-negotiations/tenth-session-of-the-plant-treaty-s-governing-body-italy-2023/tenth-session-of-the-plant-treaty-s-governing-body-italy-2023" target="_self">
+              <figure class="thumbnail list-thumbnail-default top-aligned">
+               <img alt="Tenth session of the Governing Body of the ITPGRFA" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="3723" loading="lazy" property="thumbnailUrl" src="images/Tenth%20session%20of%20the%20plant%20treatys.jpg%20%28thumbnail%29.jpg" title="Tenth session of the Governing Body of the ITPGRFA" width="540"/>
+              </figure>
+              <div class="card-body">
+               <h3 property="headline">
+                Tenth Session of the Plant Treaty’s Governing Body, Italy, 2023
+               </h3>
+               <footer class="byline">
+                Updated: 17.06.2024
+               </footer>
+               <div class="digest" property="description">
+                <p>
+                 At this session the Governing Body took note of the outcomes of the Global Symposium on Farmers’ Rights in India and decided to reconvene the Ad Hoc Technical Expert Group on Farmers’ Rights to follow up on the implementation of Article 9.
+                </p>
+               </div>
+              </div>
+             </a>
+            </article>
+           </li>
+           <li class="article col-12 col-md-6 col-lg-4 col-print-4 d-flex" data-aos="card-animation-delay">
+            <article class="default article card list-view" data-articleid="768" data-templateid="1" typeof="Article" vocab="http://schema.org/">
+             <a class="" href="https://www.farmersrights.org/international-negotiations/other-international-processes/the-world-intellectual-property-organization-wipo/the-world-intellectual-property-organization-wipo" target="_self">
+              <figure class="thumbnail list-thumbnail-default top-aligned">
+               <img alt="Logo WIPO" class="cp-mmarchive-image-default responsive-focuspoint focus-horizontal-50 focus-vertical-50" data-fileid="3387" loading="lazy" property="thumbnailUrl" src="images/WIPO-logo2.png%20%28thumbnail%29.png" title="Logo WIPO" width="540"/>
+              </figure>
+              <div class="card-body">
+               <h3 property="headline">
+                The World Intellectual Property Organization (WIPO)
+               </h3>
+               <footer class="byline">
+                Updated: 16.06.2024
+               </footer>
+               <div class="digest" property="description">
+                <p>
+                 The World Intellectual Property Organization (WIPO) is relevant for the realization of Farmers’ Rights for two quite different reasons. On one hand, the Patent Cooperation Treaty under WIPO enables patents related to plants to be granted simultaneously in a large number of countries, which may heavily affect any rights that farmers’ have to save, use, exchange and sell farm-saved seed of the plants affected by such patents. On the other hand, the Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Resources and Folklore (IGC) under WIPO seeks to negotiate one or more international legal instruments to protect traditional knowledge, traditional cultural expressions and genetic resources.
+                </p>
+               </div>
+              </div>
+             </a>
+            </article>
+           </li>
+          </ul>
+         </div>
+         <div class="bottomlink d-print-none d-flex justify-content-center">
+          <a class="btn btn-outline-primary" href="https://www.farmersrights.org/archive/" target="_self">
+           Go to archive
+          </a>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </main>
+   <footer class="d-print-none" id="placeholder-bottom">
+    <div class="container">
+     <div class="row">
+      <div class="tile-common logo navbar-brand col-12 col-md-6 col-lg-3 pt-0">
+       <div class="tile-content">
+        <a href="https://www.farmersrights.org/">
+         <span class="sr-only">
+          To frontpage
+         </span>
+         <span style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:#207733">Bharath Farms</span>
+        </a>
+        <a href="https://www.fni.no/">
+         <span class="sr-only">
+          https://www.fni.no/
+         </span>
+         
+        </a>
+       </div>
+      </div>
+      <div class="main-content-only tile-common article-banner col-12 col-md-6 col-lg-6 stripped-design">
+       <article class="">
+        <div class="tile-content">
+         <div class="articleelement newtext body ckeditor" id="body-407">
+          <h2>
+           A website from CMRIT
+          </h2>
+          <div class="article-inner-grid row">
+           <div class="col-4 col-lg-4 col-md-6 col-print-6 grid-item">
+            <p>
+             Address:
+            </p>
+           </div>
+           <div class="col-8 col-lg-8 col-md-6 col-print-6 grid-item">
+            <p>
+             CMRIT
+            </p>
+           </div>
+          </div>
+          <div class="article-inner-grid row">
+           <div class="col-4 col-lg-4 col-md-6 col-print-6 grid-item">
+            <p>
+             Postal address:
+            </p>
+           </div>
+           <div class="col-8 col-lg-8 col-md-6 col-print-6 grid-item">
+            <p>
+             Kundanahalli, Bangalore, Karnataka 560067
+            </p>
+           </div>
+          </div>
+          <div class="article-inner-grid row">
+           <div class="col-4 col-lg-4 col-md-6 col-print-6 grid-item">
+            <p>
+             Phone:
+            </p>
+           </div>
+           <div class="col-8 col-lg-8 col-md-6 col-print-6 grid-item">
+            <p>
+            </p>
+           </div>
+          </div>
+          <div class="article-inner-grid row">
+           <div class="col-4 col-lg-4 col-md-6 col-print-6 grid-item">
+            Email
+           </div>
+           <div class="col-8 col-lg-8 col-md-6 col-print-6 grid-item">
+            <p>
+            
+            </p>
+           </div>
+          </div>
+         </div>
+        </div>
+       </article>
+      </div>
+      <nav class="tile-common standard-menu d-print-none col-12 col-md-6 col-lg-2 single-mode">
+       <div class="tile-content">
+        <h2>
+         <span>
+          Shortcuts
+         </span>
+        </h2>
+        <ul class="treelist nav">
+         <li class="nav-item first tree-level-0 leaf odd">
+          <a class="nav-link" href="https://www.farmersrights.org/about/" target="_self">
+           About
+          </a>
+         </li>
+         <li class="nav-item tree-level-0 leaf even">
+          <a class="nav-link" href="https://www.farmersrights.org/contact/category331.html" target="_self">
+           Contacts
+          </a>
+         </li>
+         <li class="nav-item tree-level-0 leaf odd">
+          <a class="nav-link" href="https://www.farmersrights.org/projects/category332.html" target="_self">
+           Projects
+          </a>
+         </li>
+         <li class="nav-item tree-level-0 leaf even">
+          <a class="nav-link" href="https://www.farmersrights.org/events/" target="_self">
+           Events
+          </a>
+         </li>
+         <li class="nav-item last tree-level-0 leaf odd">
+          <a class="nav-link" href="https://www.farmersrights.org/privacy-and-cookies/" target="_self">
+           Privacy and cookies
+          </a>
+         </li>
+        </ul>
+       </div>
+      </nav>
+     </div>
+    </div>
+   </footer>
+  </div>
+  <div class="d-print-none" id="coretrek-footer">
+   <div class="container">
+    <div class="row">
+     <div class="privacy-link col-sm-12 text-center col-md-6 text-md-left">
+      <a href="https://www.farmersrights.org/privacy-and-cookies/privacy-policy-and-cookies">
+       Privacy policy and cookies
+      </a>
+     </div>
+     <div class="colofon col-sm-12 text-center col-md-6 text-md-right">
+      <span id="developedbycolofon">
+       <a href="https://www.coretrek.no/">
+        Developed by: CoreTrek
+       </a>
+      </span>
+      |
+      <span id="cmscolofon">
+       <a href="https://coretrek.no/cms/corepublish/webpublisering/">
+        CMS: CorePublish
+       </a>
+      </span>
+     </div>
+    </div>
+   </div>
+  </div>
+  
+  <noscript>
+   <iframe height="60" id="ctstatistics-noscript-iframe" src="https://www.farmersrights.org/regstat.php/2025-05-20/?l=en_GB&amp;i=1&amp;h=www.farmersrights.org&amp;q=200&amp;n=html&amp;o=4267-61088-61175-61896-61207-61737-61932-61633-3359-63299-61313-61999-64756-63748-64055-63717-63381-61086-61221&amp;m=1&amp;a=https%3A%2F%2Fwww.farmersrights.org%2F" style="border:0;" width="300">
+   </iframe>
+  </noscript>
+ 
+<script src="assets/js/device.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/voice.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img').forEach(function(im){im.addEventListener('error',function(){im.style.display='none';});});if(window.BF&&BF.mountVoiceWidget)BF.mountVoiceWidget();});</script>
 </body>
 </html>
+<!-- CtPageCache: cached at 2025-05-20 01:53:54, expires at 2025-05-21 00:00:00 -->
+<!-- CtPageCache.outputCacheFile(): Cachefile was used for device [default] from store [CtFileCacheStore]  on host [web05.ctcustomer.com] -->

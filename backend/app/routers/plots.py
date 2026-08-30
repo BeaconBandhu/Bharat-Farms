@@ -125,6 +125,10 @@ def delete_plot(
     plot = session.get(Plot, plot_id)
     if plot is None or plot.device_id != device.id:
         raise HTTPException(404, "Plot not found")
+    if plot.agro_polygon_id:
+        from ..services import agro
+
+        agro.delete_polygon(plot.agro_polygon_id)
     for analysis in session.exec(
         select(PlotAnalysis).where(PlotAnalysis.plot_id == plot_id)
     ).all():

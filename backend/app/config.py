@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # --- External data sources ---
     data_gov_in_api_key: str = ""
     openweather_api_key: str = ""
+    # Agromonitoring (agromonitoring.com) needs its OWN key (an OpenWeather key is
+    # NOT accepted). Falls back to openweather_api_key only as a best-effort try.
+    agro_api_key: str = ""
     nominatim_user_agent: str = "BharatFarms/1.0 (you@example.com)"
 
     # --- Infra ---
@@ -47,6 +50,11 @@ class Settings(BaseSettings):
     @property
     def openai_enabled(self) -> bool:
         return bool(self.openai_api_key)
+
+    @property
+    def agro_key(self) -> str:
+        # Agromonitoring needs its own key; an OpenWeather key returns 401.
+        return self.agro_api_key
 
 
 @lru_cache
