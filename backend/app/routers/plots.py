@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlmodel import Session, select
 
+from ..config import get_settings
 from ..deps import get_device, get_session
 from ..models import Device, Plot, PlotAnalysis
 from ..schemas import PlotCreate, PlotOut
@@ -12,6 +13,7 @@ from ..services.geocode import reverse_geocode
 from ..services.geometry import polygon_stats
 
 router = APIRouter(prefix="/api/plots", tags=["plots"])
+_settings = get_settings()
 
 
 def _to_out(plot: Plot, status: str | None) -> PlotOut:
@@ -70,7 +72,10 @@ async def create_plot(
     session.refresh(plot)
 
     get_or_create_analysis(session, plot.id)
-    background.add_task(run_analysis, plot.id)
+    # On serverless the pipeline runs inline on the first /analysis request
+    # (a background task would be frozen with the response). Elsewhere, start it now.
+    if not _settings.inline_analysis:
+        background.add_task(run_analysis, plot.id)
 
     return _to_out(plot, "pending")
 
@@ -112,7 +117,8 @@ def reanalyze_plot(
     analysis.status = "pending"
     session.add(analysis)
     session.commit()
-    background.add_task(run_analysis, plot_id)
+    if not _settings.inline_analysis:
+        background.add_task(run_analysis, plot_id)
     return _to_out(plot, "pending")
 
 

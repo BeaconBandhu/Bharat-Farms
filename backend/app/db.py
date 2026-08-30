@@ -10,7 +10,7 @@ from .config import get_settings
 _settings = get_settings()
 
 _connect_args = (
-    {"check_same_thread": False}
+    {"check_same_thread": False, "timeout": 30}
     if _settings.database_url.startswith("sqlite")
     else {}
 )
