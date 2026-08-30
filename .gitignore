@@ -1,0 +1,25 @@
+# --- secrets & env ---
+.env
+.env.*
+!.env.example
+
+# --- python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# --- data / build artifacts ---
+*.db
+*.sqlite3
+backend/bharatfarms.db
+backend/uploads/
+backend/.cache/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

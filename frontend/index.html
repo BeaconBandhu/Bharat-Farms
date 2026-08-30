@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bharat Farms — Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="icon" href="assets/favicon.svg" />
+  <link href="assets/css/app.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar navbar-bf navbar-expand-lg">
+    <div class="container bf-container">
+      <a class="navbar-brand fw-bold" href="index.html">🌾 Bharat Farms</a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="nav">
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link" href="index.html">Dashboard</a>
+          <a class="nav-link" href="map.html">My Plots</a>
+          <a class="nav-link" href="market.html">Market</a>
+          <a class="nav-link" href="news.html">News</a>
+          <a class="nav-link" href="crop-health.html">Crop Health</a>
+          <a class="nav-link" href="weather.html">Weather</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container bf-container py-4">
+    <div class="bf-hero p-4 p-md-5 mb-4">
+      <h1 class="h3 mb-2">Grow smarter, earn better.</h1>
+      <p class="mb-3">
+        Lock a plot on the map and Bharat Farms pulls its satellite history, works out which
+        crops are usually grown there, tracks the live mandi rate like a stock, and flags
+        regional news that could move the price.
+      </p>
+      <a href="map.html" class="btn btn-light fw-semibold">Map a plot →</a>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <div class="bf-card p-3 h-100">
+          <div class="fs-3">🗺️</div>
+          <h2 class="h6 mt-2">Plot mapping</h2>
+          <p class="small text-muted mb-2">Draw your field, lock it, get a satellite-backed profile.</p>
+          <a href="map.html" class="small">Open map</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="bf-card p-3 h-100">
+          <div class="fs-3">📈</div>
+          <h2 class="h6 mt-2">Crop market</h2>
+          <p class="small text-muted mb-2">Live mandi prices with day change and 45-day trend.</p>
+          <a href="market.html" class="small">Open market</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="bf-card p-3 h-100">
+          <div class="fs-3">📰</div>
+          <h2 class="h6 mt-2">Regional news</h2>
+          <p class="small text-muted mb-2">Headlines labelled good / bad for your crop and region.</p>
+          <a href="news.html" class="small">Open news</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="bf-card p-3 h-100">
+          <div class="fs-3">🩺</div>
+          <h2 class="h6 mt-2">Crop health</h2>
+          <p class="small text-muted mb-2">Photo diagnosis in your language.</p>
+          <a href="crop-health.html" class="small">Check a photo</a>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="h5 mt-4 mb-3">Your locked plots</h2>
+    <div id="plots" class="row g-3">
+      <div class="col-12"><div class="text-muted">Loading…</div></div>
+    </div>
+
+    <h2 class="h5 mt-4 mb-3">Watchlist</h2>
+    <div class="ticker mb-2"><div id="ticker" class="ticker-track"></div></div>
+    <p class="small text-muted">Manage your watchlist on the <a href="market.html">Market</a> page.</p>
+
+    <div id="status-note" class="alert alert-warning small mt-3 d-none"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/device.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/voice.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    (async function () {
+      // Config note
+      try {
+        var st = await BF.api.get("/api/status");
+        var missing = [];
+        if (!st.openai) missing.push("OPENAI_API_KEY (voice, photo diagnosis, AI crop inference)");
+        if (!st.prices) missing.push("DATA_GOV_IN_API_KEY (mandi prices)");
+        if (!st.weather) missing.push("OPENWEATHER_API_KEY (weather)");
+        if (missing.length) {
+          var n = document.getElementById("status-note");
+          n.classList.remove("d-none");
+          n.innerHTML = "Some features are disabled until these keys are set in <code>backend/.env</code>:<br>• " + missing.join("<br>• ");
+        }
+      } catch (e) {}
+
+      // Plots
+      var wrap = document.getElementById("plots");
+      try {
+        var plots = await BF.api.get("/api/plots");
+        if (!plots.length) {
+          wrap.innerHTML = '<div class="col-12 text-muted">No plots yet. <a href="map.html">Map your first plot →</a></div>';
+        } else {
+          wrap.innerHTML = plots
+            .map(function (p) {
+              return (
+                '<div class="col-md-6 col-lg-4"><div class="bf-card p-3 h-100">' +
+                '<div class="d-flex justify-content-between"><strong>' + p.name + "</strong>" +
+                '<span class="badge bg-' + (p.analysis_status === "ready" ? "success" : p.analysis_status === "error" ? "danger" : "secondary") + '">' + p.analysis_status + "</span></div>" +
+                '<div class="small text-muted">' + (p.district || "?") + ", " + (p.state || "?") + " • " + p.area_hectares.toFixed(2) + " ha</div>" +
+                '<a class="btn btn-sm btn-outline-success mt-2" href="plot.html?id=' + p.id + '">Open report</a>' +
+                "</div></div>"
+              );
+            })
+            .join("");
+        }
+      } catch (e) {
+        wrap.innerHTML = '<div class="col-12 text-danger">Could not load plots: ' + e.message + "</div>";
+      }
+
+      // Ticker
+      try {
+        var wl = await BF.api.get("/api/watchlist");
+        var t = document.getElementById("ticker");
+        if (!wl.length) {
+          t.innerHTML = '<span class="ticker-item text-muted">Watchlist empty</span>';
+        } else {
+          var items = wl.map(function (w) {
+            var q = w.quote;
+            if (!q) return '<span class="ticker-item">' + w.commodity + " —</span>";
+            var cls = BF.fmt.dir(q.change_pct);
+            return (
+              '<span class="ticker-item">' + w.commodity.toUpperCase() + " " +
+              BF.fmt.inr(q.modal_price) + ' <span class="' + cls + '">' +
+              BF.fmt.arrow(q.change_pct) + " " + BF.fmt.pct(q.change_pct) + "</span></span>"
+            );
+          });
+          t.innerHTML = (items.join("") + items.join("")); // doubled for seamless scroll
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

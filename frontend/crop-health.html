@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bharat Farms — Crop Health</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="icon" href="assets/favicon.svg" />
+  <link href="assets/css/app.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar navbar-bf navbar-expand-lg">
+    <div class="container bf-container">
+      <a class="navbar-brand fw-bold" href="index.html">🌾 Bharat Farms</a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="nav">
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link" href="index.html">Dashboard</a>
+          <a class="nav-link" href="map.html">My Plots</a>
+          <a class="nav-link" href="market.html">Market</a>
+          <a class="nav-link" href="news.html">News</a>
+          <a class="nav-link" href="crop-health.html">Crop Health</a>
+          <a class="nav-link" href="weather.html">Weather</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container bf-container py-4" style="max-width: 720px;">
+    <h1 class="h4 mb-3">Crop health check</h1>
+    <div class="bf-card p-4">
+      <div class="row g-2">
+        <div class="col-12">
+          <label class="form-label small">Crop photo (leaf / plant close-up)</label>
+          <input id="img" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" />
+        </div>
+        <div class="col-8">
+          <label class="form-label small">Answer in</label>
+          <select id="lang" class="form-select">
+            <option value="hi">हिन्दी</option><option value="en">English</option>
+            <option value="bn">বাংলা</option><option value="te">తెలుగు</option>
+            <option value="mr">मराठी</option><option value="ta">தமிழ்</option>
+            <option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option>
+            <option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option>
+            <option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label class="form-label small">Crop (optional)</label>
+          <input id="crop" class="form-control" placeholder="e.g. Tomato" />
+        </div>
+      </div>
+      <img id="preview" class="img-fluid rounded mt-3 d-none" style="max-height: 260px;" />
+      <button id="go" class="btn btn-success w-100 mt-3">🩺 Diagnose</button>
+    </div>
+
+    <div id="result" class="bf-card p-4 mt-3 d-none">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">Result</h2>
+        <button id="speak" class="btn btn-sm btn-outline-success">🔊 Read aloud</button>
+      </div>
+      <div id="result-text" style="white-space: pre-wrap;"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/device.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/voice.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    var imgInput = document.getElementById("img");
+    var preview = document.getElementById("preview");
+    imgInput.addEventListener("change", function () {
+      if (imgInput.files[0]) {
+        preview.src = URL.createObjectURL(imgInput.files[0]);
+        preview.classList.remove("d-none");
+      }
+    });
+
+    document.getElementById("go").addEventListener("click", async function () {
+      if (!imgInput.files[0]) { BF.toast("Choose an image first.", "warning"); return; }
+      this.disabled = true;
+      this.textContent = "Analysing…";
+      var fd = new FormData();
+      fd.append("file", imgInput.files[0]);
+      fd.append("language", document.getElementById("lang").value);
+      fd.append("crop", document.getElementById("crop").value);
+      try {
+        var r = await BF.api.postForm("/api/health/diagnose", fd);
+        document.getElementById("result").classList.remove("d-none");
+        document.getElementById("result-text").textContent = r.diagnosis;
+        window._lastDiag = { text: r.diagnosis, lang: r.language };
+      } catch (e) {
+        BF.toast(e.status === 503 ? "Needs OPENAI_API_KEY in backend/.env" : e.message, "danger");
+      }
+      this.disabled = false;
+      this.textContent = "🩺 Diagnose";
+    });
+
+    document.getElementById("speak").addEventListener("click", function () {
+      if (window._lastDiag) BF.speak(window._lastDiag.text, window._lastDiag.lang);
+    });
+  </script>
+</body>
+</html>
