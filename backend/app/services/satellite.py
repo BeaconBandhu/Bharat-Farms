@@ -114,9 +114,15 @@ def plot_imagery(
     bbox: list[float],
     *,
     years: int = 5,
-    max_items: int = 16,
+    max_items: int = 14,
 ) -> dict:
-    """Return {thumbnails: [{date,url}], ndvi_series: [{date,ndvi}], note}."""
+    """Return {thumbnails: [{date,url}], ndvi_series: [{date,ndvi}], note}.
+
+    NDVI tiles are fetched concurrently so this stays well under a serverless
+    function timeout.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
     items = _search_items(bbox, geometry, years, max_items)
     if not items:
         return {
@@ -125,16 +131,18 @@ def plot_imagery(
             "note": "No cloud-free Sentinel-2 scenes found for this plot.",
         }
 
-    thumbnails: list[dict] = []
-    ndvi_series: list[dict] = []
-    for it in items:
-        day = it["properties"]["datetime"][:10]
-        thumbnails.append({"date": day, "url": _thumb_url(it, bbox)})
-        ndvi = _mean_ndvi(it, bbox)
-        if ndvi is not None:
-            ndvi_series.append({"date": day, "ndvi": ndvi})
+    thumbnails = [
+        {"date": it["properties"]["datetime"][:10], "url": _thumb_url(it, bbox)}
+        for it in items
+    ]
 
-    note = ""
-    if not ndvi_series:
-        note = "Imagery found, but NDVI values could not be computed."
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        ndvis = list(pool.map(lambda it: _mean_ndvi(it, bbox), items))
+    ndvi_series = [
+        {"date": it["properties"]["datetime"][:10], "ndvi": n}
+        for it, n in zip(items, ndvis)
+        if n is not None
+    ]
+
+    note = "" if ndvi_series else "Imagery found, but NDVI values could not be computed."
     return {"thumbnails": thumbnails, "ndvi_series": ndvi_series, "note": note}

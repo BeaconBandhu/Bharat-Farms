@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     enable_scheduler: bool = False
     # Optional shared secret to guard POST /api/admin/refresh.
     admin_token: str = ""
+    # Serverless (Vercel): background tasks don't survive the response, so run the
+    # plot-analysis pipeline synchronously when the report is first requested.
+    inline_analysis: bool = False
 
     @property
     def cors_origins_list(self) -> list[str]:

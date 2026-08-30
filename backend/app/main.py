@@ -1,14 +1,20 @@
 """FastAPI application entrypoint.
 
-Serves the JSON API under /api/* and the static frontend from ../frontend.
+Serves the JSON API under /api/* and the static site in ../../public.
+
+On Vercel (`VERCEL` env set) the `public/` directory is served straight from
+the CDN, so the StaticFiles mount is skipped and `/` just redirects to
+`/index.html`. Locally and on Render the mount serves everything.
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
@@ -26,7 +32,8 @@ from .routers import (
 )
 
 settings = get_settings()
-FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
 
 
 @asynccontextmanager
@@ -69,5 +76,9 @@ def status():
     }
 
 
-if FRONTEND_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+if ON_VERCEL:
+    @app.get("/", include_in_schema=False)
+    def _root():
+        return RedirectResponse("/index.html", status_code=307)
+elif PUBLIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=str(PUBLIC_DIR), html=True), name="site")

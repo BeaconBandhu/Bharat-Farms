@@ -1,0 +1,4 @@
+# Tells Vercel's Python runtime where the FastAPI `app` lives (a subdir, not a
+# default entrypoint path). https://vercel.com/docs/frameworks/backend/fastapi
+[tool.vercel]
+entrypoint = "backend.vercel_app:app"
