@@ -37,7 +37,7 @@ backend/     FastAPI (Python) — JSON API under /api/* + serves the frontend
     services/   openai_client, satellite, agro, crop_history, prices, forecast,
                 news_feed, geocode, region_priors, analysis_runner
     jobs/       daily_refresh  (prices + news; run by APScheduler or cron)
-frontend/    The original Bharat Farms site (farmersrights.org-derived theme,
+public/      The original Bharat Farms site (farmersrights.org-derived theme,
              rehosted), wired to the API. Bootstrap 5 + Leaflet + Chart.js,
              vanilla JS, no build. New feature pages: map.html, plot.html, news.html
 render.yaml  One Render web service (disk-backed SQLite + in-process scheduler)
@@ -46,7 +46,7 @@ render.yaml  One Render web service (disk-backed SQLite + in-process scheduler)
 | Concern | Choice |
 |---|---|
 | Backend | FastAPI + SQLModel (SQLite) |
-| Frontend | The pre-existing site files, restored + API-wired (`index.html` + `market/weather/crop-health/speech_stt/smart-crop/revenue`); CoreTrek theme CSS/fonts rehosted from farmersrights.org into `frontend/css` `frontend/fonts`. The theme's CMS JS is *not* rehosted, so the header is a small custom bar. |
+| Frontend | The pre-existing site files in `public/`, restored + API-wired (`index.html` + `market/weather/crop-health/speech_stt/smart-crop/revenue`); CoreTrek theme CSS/fonts rehosted from farmersrights.org into `public/css` `public/fonts`. The theme's CMS JS is *not* rehosted, so the header is a small custom bar. |
 | New pages | `map.html` (draw/lock a plot), `plot.html` (satellite report), `news.html` |
 | Accounts | None — a browser `localStorage` device id keys plots & watchlist |
 | Vision / STT / TTS | OpenAI API (`OPENAI_*` models, all configurable) |
@@ -121,6 +121,35 @@ or `POST /api/admin/refresh` (guard with `ADMIN_TOKEN`) to trigger it on demand.
 Free tier: drop the `disk:` block and point `DATABASE_URL` at a hosted Postgres
 instead (the code is plain SQLModel/SQL). A dedicated Cron Job variant is included
 commented-out in `render.yaml`.
+
+## Deploy to Vercel
+
+Live at **https://bharat-farms.vercel.app** (behind Vercel Deployment Protection
+until you disable it: Project → Settings → Deployment Protection → Vercel
+Authentication → Disable).
+
+`vercel.json` uses the classic build schema:
+
+- `@vercel/python` builds `backend/vercel_app.py` (which sets `DATABASE_URL` to
+  `/tmp` SQLite + `INLINE_ANALYSIS=true`, then imports `backend.app.main:app`);
+  routes send `/api/*` there.
+- `@vercel/static` publishes `public/**`; routes serve every other path from it.
+- a Vercel Cron hits `GET /api/admin/refresh` daily.
+
+```bash
+vercel link --project bharat-farms
+vercel env add OPENAI_API_KEY production      # + DATA_GOV_IN_API_KEY, AGRO_API_KEY
+vercel deploy --prod
+```
+
+**Caveats of the serverless model:**
+- **Ephemeral SQLite** — plots, watchlist and stored news reset whenever the
+  function instance recycles. Set `DATABASE_URL` to a hosted Postgres
+  (Neon/Supabase/Vercel Storage) in the project env for durability.
+- **No background tasks** — with `INLINE_ANALYSIS=true` the plot pipeline runs
+  synchronously on the first `/api/plots/{id}/analysis` request (≈6–40 s, inside
+  the 60 s `maxDuration`); the map page already polls that endpoint.
+- **No in-process scheduler** — the daily refresh is the Vercel Cron above.
 
 ---
 
