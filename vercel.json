@@ -7,12 +7,6 @@
       "buildCommand": "pip install -r requirements.txt"
     }
   },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": { "type": "service", "service": "bharat-farms" }
-    }
-  ],
   "crons": [
     { "path": "/api/admin/refresh", "schedule": "0 1 * * *" }
   ]

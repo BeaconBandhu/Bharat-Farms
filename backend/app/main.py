@@ -71,12 +71,15 @@ def status():
     }
 
 
-# Serve the static site from the repo-root public/ directory. On Vercel this is
-# served straight from the CDN (the platform handles a root-level public/), so
-# this mount is only exercised locally and on Render.
-_public = next(
-    (p for p in (_here.parents[2] / "public", _here.parents[1] / "public") if p.is_dir()),
-    None,
-)
-if _public is not None:
-    app.mount("/", StaticFiles(directory=str(_public), html=True), name="site")
+# Serve the static site. The literal "public" lets Vercel's FastAPI builder
+# promote backend/public/ to the CDN at build time (cwd is backend/ on Vercel,
+# Render and locally). Absolute-path fallback if started from elsewhere.
+try:
+    app.mount("/", StaticFiles(directory="public", html=True), name="site")
+except RuntimeError:
+    _fallback = next(
+        (p for p in (_here.parents[1] / "public", _here.parents[2] / "public") if p.is_dir()),
+        None,
+    )
+    if _fallback is not None:
+        app.mount("/", StaticFiles(directory=str(_fallback), html=True), name="site")
