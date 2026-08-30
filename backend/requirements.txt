@@ -11,7 +11,6 @@ pyproj>=3.6,<4
 pystac-client>=0.8,<0.9
 planetary-computer>=1.0,<2
 numpy>=1.26,<3
-pandas>=2.2,<3
 python-dateutil>=2.9
 APScheduler>=3.10,<4
 tenacity>=8.5,<10
