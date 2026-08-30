@@ -29,10 +29,6 @@ from .routers import (
 
 settings = get_settings()
 _here = Path(__file__).resolve()
-PUBLIC_DIR = next(
-    (p for p in (_here.parents[1] / "public", _here.parents[2] / "public") if p.is_dir()),
-    _here.parents[1] / "public",
-)
 
 
 @asynccontextmanager
@@ -75,5 +71,16 @@ def status():
     }
 
 
-if PUBLIC_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=str(PUBLIC_DIR), html=True), name="site")
+# Serve the static site. The literal "public" is what Vercel's FastAPI builder
+# looks for to promote the directory into the deployment (commands run with
+# cwd = backend/ locally, on Render and on Vercel). Fall back to an absolute
+# path if the app is started from somewhere else.
+try:
+    app.mount("/", StaticFiles(directory="public", html=True), name="site")
+except RuntimeError:
+    _fallback = next(
+        (p for p in (_here.parents[1] / "public", _here.parents[2] / "public") if p.is_dir()),
+        None,
+    )
+    if _fallback is not None:
+        app.mount("/", StaticFiles(directory=str(_fallback), html=True), name="site")
