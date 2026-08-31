@@ -104,12 +104,14 @@
       if (!crop) { alert('Pick a crop first.'); return; }
       try {
         const q = await BF.api.get('/api/prices?commodity=' + encodeURIComponent(crop));
-        if (q.modal_price) {
+        if (q.available && q.modal_price) {
           document.getElementById('marketPrice').value = q.modal_price;
           calculateRevenue();
+        } else {
+          alert(q.reason || ('No live price for ' + crop + ' yet.'));
         }
       } catch (e) {
-        alert(e.status === 404 ? 'No live price for ' + crop + ' yet.' : e.message);
+        alert(e.message);
       }
     });
 

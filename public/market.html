@@ -128,6 +128,12 @@
       for (var j = 0; j < picks.length; j++) {
         try {
           var q = await BF.api.get("/api/prices?commodity=" + encodeURIComponent(picks[j]) + qs);
+          if (!q.available) {
+            box.insertAdjacentHTML("beforeend",
+              '<div class="col-6 col-md-4"><div class="price-box"><h5>' + picks[j] +
+              "</h5><div class='small text-muted'>no data</div></div></div>");
+            continue;
+          }
           var cls = q.change_pct > 0.5 ? "up" : q.change_pct < -0.5 ? "down" : "flat";
           var arrow = cls === "up" ? "▲" : cls === "down" ? "▼" : "▬";
           box.insertAdjacentHTML("beforeend",

@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlmodel import Session, select
 
+from ..config import get_settings
 from ..deps import get_device, get_session
 from ..models import CropPriceSnapshot, Device, WatchlistItem
 from ..schemas import PricePoint, PriceQuote, WatchCreate, WatchOut
 from ..services import prices as price_svc
 
 router = APIRouter(prefix="/api", tags=["prices"])
+_settings = get_settings()
 
 # Common Agmarknet commodities, for the search box before the DB warms up.
 COMMON_COMMODITIES = [
@@ -22,22 +24,31 @@ COMMON_COMMODITIES = [
 ]
 
 
-@router.get("/prices", response_model=PriceQuote)
+@router.get("/prices")
 async def get_price(
     commodity: str = Query(..., min_length=2),
     state: str | None = None,
     session: Session = Depends(get_session),
 ):
+    """Latest mandi quote. Always 200: `available` is false when prices are
+    turned off (no DATA_GOV_IN_API_KEY) or there's simply no recent data yet."""
+    if not _settings.data_gov_in_api_key:
+        return {
+            "available": False,
+            "commodity": commodity,
+            "reason": "Live mandi prices need DATA_GOV_IN_API_KEY in backend/.env.",
+        }
     await price_svc.ensure_fresh(session, commodity, state)
     quote = price_svc.get_quote(session, commodity, state)
     if quote is None:
-        raise HTTPException(
-            404,
-            f"No price data for '{commodity}'"
+        return {
+            "available": False,
+            "commodity": commodity,
+            "reason": f"No recent mandi data for '{commodity}'"
             + (f" in {state}" if state else "")
-            + ". Check the name or try without a state filter.",
-        )
-    return PriceQuote(**quote)
+            + " yet.",
+        }
+    return {"available": True, **PriceQuote(**quote).model_dump(mode="json")}
 
 
 @router.get("/prices/{commodity}/history", response_model=list[PricePoint])

@@ -1,7 +1,7 @@
 """Regional crop news feed."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends
 from sqlmodel import Session, select
 
 from ..deps import get_device, get_session
@@ -69,11 +69,12 @@ async def refresh_news(
         targets = _targets_for_device(session, device.id)
 
     if not targets:
-        raise HTTPException(
-            400,
-            "Nothing to refresh. Lock a plot or add a crop to your watchlist first, "
-            "or pass an explicit {crop, state}.",
-        )
+        return {
+            "new_items": 0,
+            "targets": [],
+            "message": "Lock a plot on the map or add a crop to your watchlist, "
+            "then Fetch latest.",
+        }
 
     total_new = 0
     refreshed: list[dict] = []

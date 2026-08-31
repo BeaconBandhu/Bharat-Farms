@@ -77,7 +77,8 @@
     this.textContent = "Fetching…";
     try {
       var r = await BF.api.post("/api/news/refresh", {});
-      BF.toast(r.new_items + " new item(s) fetched.", "success");
+      if (r.message) BF.toast(r.message, "info");
+      else BF.toast(r.new_items + " new item(s) fetched.", "success");
       await load();
     } catch (e) {
       BF.toast(e.message, "warning");
