@@ -1,0 +1,14 @@
+.git
+node_modules
+backend/.venv
+backend/bharatfarms.db
+**/__pycache__
+**/*.pyc
+*.db
+*.sqlite3
+.env
+.env.*
+.claude
+.DS_Store
+README.md
+render.yaml

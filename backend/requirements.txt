@@ -1,0 +1,16 @@
+fastapi>=0.111,<0.116
+uvicorn[standard]>=0.30,<0.35
+pydantic-settings>=2.3,<3
+sqlmodel>=0.0.21,<0.1
+httpx>=0.27,<0.29
+python-multipart>=0.0.9
+openai>=1.40,<3
+feedparser>=6.0.11
+shapely>=2.0,<3
+pyproj>=3.6,<4
+pystac-client>=0.8,<0.9
+planetary-computer>=1.0,<2
+numpy>=1.26,<3
+python-dateutil>=2.9
+APScheduler>=3.10,<4
+tenacity>=8.5,<10

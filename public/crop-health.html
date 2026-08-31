@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crop Health Detection | Bharat Farms</title>
+    <link rel="icon" href="images/favicon-32x32.png" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background: linear-gradient(to right, #a8e063, #56ab2f);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 560px;
+            width: 100%;
+            text-align: center;
+        }
+        h3 { color: #2d6a4f; font-weight: 700; }
+        .form-label { font-weight: 600; }
+        .btn-success { background-color: #2d6a4f; border: none; }
+        .btn-success:hover { background-color: #1b4332; }
+        .text-muted { font-size: 0.9rem; }
+        #result { white-space: pre-wrap; text-align: left; }
+        #preview { max-height: 240px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3 class="mb-3">🌿 Crop Health Detection</h3>
+        <p class="text-muted mb-4">Upload a crop photo — get a diagnosis in your language (OpenAI vision).</p>
+
+        <div class="mb-3 text-start">
+            <label for="file" class="form-label">Select an image</label>
+            <input class="form-control" type="file" id="file" accept="image/jpeg,image/png,image/webp" required />
+        </div>
+        <div class="row g-2 text-start">
+          <div class="col-7">
+            <label class="form-label">Answer in</label>
+            <select id="lang" class="form-select">
+              <option value="hi">हिन्दी</option><option value="en">English</option>
+              <option value="bn">বাংলা</option><option value="te">తెలుగు</option>
+              <option value="mr">मराठी</option><option value="ta">தமிழ்</option>
+              <option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option>
+              <option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option>
+              <option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option>
+            </select>
+          </div>
+          <div class="col-5">
+            <label class="form-label">Crop (optional)</label>
+            <input id="crop" class="form-control" placeholder="e.g. Tomato" />
+          </div>
+        </div>
+
+        <img id="preview" class="img-fluid rounded mt-3 d-none" alt="" />
+        <button id="go" class="btn btn-success w-100 mt-3">🩺 Diagnose</button>
+
+        <div id="resultBox" class="alert alert-light border mt-3 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong>Result</strong>
+            <button id="speak" class="btn btn-sm btn-outline-success">🔊 Read aloud</button>
+          </div>
+          <div id="result"></div>
+        </div>
+        <div id="errBox" class="alert alert-danger mt-3 d-none"></div>
+    </div>
+
+    <script src="assets/js/device.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/voice.js"></script>
+    <script>
+      var fileEl = document.getElementById("file");
+      var preview = document.getElementById("preview");
+      fileEl.addEventListener("change", function () {
+        if (fileEl.files[0]) { preview.src = URL.createObjectURL(fileEl.files[0]); preview.classList.remove("d-none"); }
+      });
+
+      document.getElementById("go").addEventListener("click", async function () {
+        var errBox = document.getElementById("errBox");
+        errBox.classList.add("d-none");
+        if (!fileEl.files[0]) { errBox.textContent = "Choose an image first."; errBox.classList.remove("d-none"); return; }
+        this.disabled = true; this.textContent = "Analysing…";
+        var fd = new FormData();
+        fd.append("file", fileEl.files[0]);
+        fd.append("language", document.getElementById("lang").value);
+        fd.append("crop", document.getElementById("crop").value);
+        try {
+          var r = await BF.api.postForm("/api/health/diagnose", fd);
+          document.getElementById("resultBox").classList.remove("d-none");
+          document.getElementById("result").textContent = r.diagnosis;
+          window._diag = r;
+        } catch (e) {
+          errBox.textContent = e.status === 503 ? "Set OPENAI_API_KEY in backend/.env to enable diagnosis." : e.message;
+          errBox.classList.remove("d-none");
+        }
+        this.disabled = false; this.textContent = "🩺 Diagnose";
+      });
+
+      document.getElementById("speak").addEventListener("click", function () {
+        if (window._diag) BF.speak(window._diag.diagnosis, window._diag.language);
+      });
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "backend/vercel_app.py", "use": "@vercel/python" },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "backend/vercel_app.py" },
+    { "src": "/(.+\\.[a-zA-Z0-9]+)$", "dest": "/public/$1" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/admin/refresh", "schedule": "0 1 * * *" }
+  ]
+}

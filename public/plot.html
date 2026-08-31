@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bharat Farms — Plot report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="icon" href="assets/favicon.svg" />
+  <link href="assets/css/app.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar navbar-bf navbar-expand-lg">
+    <div class="container bf-container">
+      <a class="navbar-brand fw-bold" href="index.html">🌾 Bharat Farms</a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="nav">
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link" href="index.html">Dashboard</a>
+          <a class="nav-link" href="map.html">My Plots</a>
+          <a class="nav-link" href="market.html">Market</a>
+          <a class="nav-link" href="news.html">News</a>
+          <a class="nav-link" href="crop-health.html">Crop Health</a>
+          <a class="nav-link" href="weather.html">Weather</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container bf-container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <h1 id="p-name" class="h4 mb-1">Plot report</h1>
+        <div id="p-meta" class="text-muted small">Loading…</div>
+      </div>
+      <div class="text-end">
+        <span id="p-status" class="badge bg-secondary">…</span>
+        <button id="rerun" class="btn btn-sm btn-outline-success ms-2">Re-run analysis</button>
+      </div>
+    </div>
+
+    <div id="p-note" class="alert alert-info small mt-3 d-none"></div>
+
+    <section class="bf-card p-3 mt-3">
+      <h2 class="h6">Satellite history (Sentinel-2)</h2>
+      <div id="sat" class="sat-strip"><span class="text-muted small">Loading imagery…</span></div>
+    </section>
+
+    <section class="bf-card p-3 mt-3">
+      <h2 class="h6">Vegetation index (NDVI) over time <span id="ndvi-src" class="badge bg-light text-muted fw-normal"></span></h2>
+      <canvas id="ndvi" height="90"></canvas>
+      <p class="small text-muted mb-0">Green-up peaks reveal the growing seasons used to infer the crop cycle.</p>
+    </section>
+
+    <section id="soil-sec" class="bf-card p-3 mt-3 d-none">
+      <h2 class="h6">Soil &amp; accumulated weather <span class="badge bg-light text-muted fw-normal">Agromonitoring</span></h2>
+      <div id="soil" class="row g-3 small"></div>
+    </section>
+
+    <section class="mt-3">
+      <h2 class="h6">Crops usually grown here</h2>
+      <div id="crops" class="row g-3"><div class="col-12 text-muted small">Analysing…</div></div>
+      <p id="crop-summary" class="small text-muted mt-2"></p>
+    </section>
+
+    <section class="mt-3">
+      <h2 class="h6">Price outlook</h2>
+      <div id="outlook" class="row g-3"><div class="col-12 text-muted small">Waiting for crop inference…</div></div>
+    </section>
+
+    <section class="bf-card p-3 mt-3">
+      <h2 class="h6">Local weather</h2>
+      <div id="weather" class="small text-muted">Loading…</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="assets/js/device.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/voice.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/plot.js"></script>
+</body>
+</html>

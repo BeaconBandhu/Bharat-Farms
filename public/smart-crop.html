@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Crop Recommendation | Bharat Farms</title>
+  <link rel="icon" href="images/favicon-32x32.png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #c2e9fb, #a1c4fd);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 720px;
+    }
+    .title { font-weight: bold; font-size: 2rem; color: #1f4e79; margin-bottom: 1rem; }
+    .form-label { font-weight: 600; }
+    .form-control, .form-select { margin-bottom: 1rem; }
+    .btn-success {
+      width: 100%; font-weight: 600;
+      background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%); border: none; color: #14532d;
+    }
+    .btn-success:hover { background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title text-center">🌾 BHARAT FARMS<br/><small class="text-muted">Smart Crop Recommendation</small></div>
+    <div class="row">
+      <div class="col-md-6">
+        <label for="location" class="form-label">📍 Location / State</label>
+        <input type="text" class="form-control" id="location" placeholder="e.g. Mandya, Karnataka">
+      </div>
+      <div class="col-md-6">
+        <label for="soilType" class="form-label">🧱 Soil Type</label>
+        <select class="form-select" id="soilType">
+          <option selected>Clay Loam</option><option>Loamy</option><option>Sandy</option>
+          <option>Black Soil</option><option>Red Soil</option><option>Alluvial</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <label for="season" class="form-label">📅 Season</label>
+        <select class="form-select" id="season">
+          <option selected>Kharif</option><option>Rabi</option><option>Zaid</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label for="rainfall" class="form-label">🌧 Rainfall (mm)</label>
+        <input type="number" class="form-control" id="rainfall" value="800">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <label for="landSize" class="form-label">📐 Land Size (ha)</label>
+        <input type="number" class="form-control" id="landSize" value="2">
+      </div>
+      <div class="col-md-6">
+        <label for="budget" class="form-label">💰 Budget (₹)</label>
+        <input type="number" class="form-control" id="budget" value="50000">
+      </div>
+    </div>
+    <button id="go" class="btn btn-success mt-2">🌿 Recommend crops</button>
+
+    <div id="out" class="mt-3"></div>
+  </div>
+
+  <script src="assets/js/device.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script>
+    document.getElementById("go").addEventListener("click", async function () {
+      var out = document.getElementById("out");
+      out.innerHTML = '<div class="text-muted">Thinking…</div>';
+      this.disabled = true;
+      try {
+        var r = await BF.api.post("/api/recommend", {
+          location: document.getElementById("location").value,
+          state: document.getElementById("location").value,
+          soil_type: document.getElementById("soilType").value,
+          season: document.getElementById("season").value,
+          rainfall_mm: parseFloat(document.getElementById("rainfall").value) || null,
+          land_size_ha: parseFloat(document.getElementById("landSize").value) || null,
+          budget_inr: parseFloat(document.getElementById("budget").value) || null,
+          language: "en"
+        });
+        out.innerHTML =
+          '<h5 class="mt-2">Recommended</h5>' +
+          r.crops.map(function (c) {
+            return '<div class="border rounded p-2 mb-2"><strong>' + (c.crop || "") + "</strong>" +
+              (c.water_need ? ' <span class="badge bg-info text-dark">water: ' + c.water_need + "</span>" : "") +
+              (c.est_input_cost_per_acre ? ' <span class="badge bg-secondary">' + c.est_input_cost_per_acre + "/acre</span>" : "") +
+              '<div class="small text-muted">' + (c.why || "") + "</div></div>";
+          }).join("") +
+          (r.notes ? '<div class="small text-muted mt-1">' + r.notes + "</div>" : "") +
+          (r.ai ? "" : '<div class="small text-warning mt-1">Set OPENAI_API_KEY for a tailored answer.</div>');
+      } catch (e) {
+        out.innerHTML = '<div class="text-danger">' + e.message + "</div>";
+      }
+      this.disabled = false;
+    });
+  </script>
+</body>
+</html>

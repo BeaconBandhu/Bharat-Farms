@@ -1,0 +1,79 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+# One web service that serves the API + static frontend and runs the daily
+# price/news refresh in-process (APScheduler at 06:30 IST).
+#
+# Set the secret env vars (sync:false) in the Render dashboard after the first
+# deploy: OPENAI_API_KEY, DATA_GOV_IN_API_KEY, OPENWEATHER_API_KEY, ADMIN_TOKEN.
+#
+# NOTE: a persistent disk requires a paid instance type. On the free tier,
+# drop the `disk:` block and set DATABASE_URL to a hosted Postgres instead
+# (the code only needs SQLModel-compatible SQL).
+
+services:
+  - type: web
+    name: bharat-farms
+    runtime: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/status
+    autoDeploy: true
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      - key: DATABASE_URL
+        value: sqlite:////var/data/bharatfarms.db
+      - key: ENABLE_SCHEDULER
+        value: "true"
+      - key: OPENAI_STT_MODEL
+        value: gpt-4o-transcribe
+      - key: OPENAI_TTS_MODEL
+        value: gpt-4o-mini-tts
+      - key: OPENAI_TTS_VOICE
+        value: alloy
+      - key: OPENAI_VISION_MODEL
+        value: gpt-4.1
+      - key: OPENAI_CHAT_MODEL
+        value: gpt-4.1-mini
+      - key: NOMINATIM_USER_AGENT
+        value: BharatFarms/1.0 (set-a-real-contact@example.com)
+      - key: CORS_ALLOW_ORIGINS
+        value: "*"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DATA_GOV_IN_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: AGRO_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+
+# Optional: a dedicated Cron Job instead of the in-process scheduler.
+# Requires a shared database (e.g. Render Postgres) both services point at,
+# since a disk can only attach to one service. Then set ENABLE_SCHEDULER=false
+# above and uncomment:
+#
+#  - type: cron
+#    name: bharat-farms-daily
+#    runtime: python
+#    plan: starter
+#    rootDir: backend
+#    schedule: "0 1 * * *"        # 01:00 UTC ~= 06:30 IST
+#    buildCommand: pip install -r requirements.txt
+#    startCommand: python -m app.jobs.daily_refresh
+#    envVars:
+#      - key: DATABASE_URL
+#        fromDatabase:
+#          name: bharat-farms-db
+#          property: connectionString
+#      - key: OPENAI_API_KEY
+#        sync: false
+#      - key: DATA_GOV_IN_API_KEY
+#        sync: false
