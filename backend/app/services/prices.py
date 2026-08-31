@@ -78,6 +78,28 @@ def normalize_record(rec: dict) -> dict | None:
     }
 
 
+# data.gov.in is slow and frequently 5xxs. Keep the per-request budget small and,
+# after a failure, back off entirely for a while so requests stay fast.
+_DATA_GOV_TIMEOUT = 12
+_RETRY_STATUS = {500, 502, 503, 504}
+_FAIL_COOLDOWN = timedelta(minutes=15)
+_cooldown_until: datetime | None = None
+
+
+def _in_cooldown() -> bool:
+    return _cooldown_until is not None and datetime.now(timezone.utc) < _cooldown_until
+
+
+def _note_failure() -> None:
+    global _cooldown_until
+    _cooldown_until = datetime.now(timezone.utc) + _FAIL_COOLDOWN
+
+
+def _note_success() -> None:
+    global _cooldown_until
+    _cooldown_until = None
+
+
 async def fetch_agmarknet(
     *,
     state: str | None = None,
@@ -86,14 +108,13 @@ async def fetch_agmarknet(
     market: str | None = None,
     limit: int = 2000,
 ) -> list[dict]:
-    if not _settings.data_gov_in_api_key:
+    key = _settings.data_gov_key
+    if not key:
         raise PricesUnavailable("DATA_GOV_IN_API_KEY is not set")
+    if _in_cooldown():
+        raise PricesUnavailable("data.gov.in recently failed; backing off")
 
-    params: dict[str, str | int] = {
-        "api-key": _settings.data_gov_in_api_key,
-        "format": "json",
-        "limit": limit,
-    }
+    params: dict[str, str | int] = {"api-key": key, "format": "json", "limit": limit}
     if state:
         params["filters[state]"] = state.title()
     if district:
@@ -103,10 +124,32 @@ async def fetch_agmarknet(
     if market:
         params["filters[market]"] = market.title()
 
-    async with httpx.AsyncClient(timeout=_settings.request_timeout_seconds) as client:
-        resp = await client.get(API_URL, params=params)
-        resp.raise_for_status()
-        payload = resp.json()
+    payload = None
+    try:
+        async with httpx.AsyncClient(timeout=_DATA_GOV_TIMEOUT) as client:
+            for attempt in range(2):
+                try:
+                    resp = await client.get(API_URL, params=params)
+                except httpx.HTTPError:
+                    if attempt == 1:
+                        raise
+                    continue
+                if resp.status_code in _RETRY_STATUS and attempt < 1:
+                    continue
+                resp.raise_for_status()
+                try:
+                    payload = resp.json()
+                except ValueError as exc:
+                    raise PricesUnavailable("data.gov.in returned non-JSON") from exc
+                break
+    except (httpx.HTTPError, PricesUnavailable):
+        _note_failure()
+        raise
+
+    if payload is None:
+        _note_failure()
+        raise PricesUnavailable("data.gov.in is unavailable right now")
+    _note_success()
 
     records = payload.get("records") or []
 

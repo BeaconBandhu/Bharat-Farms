@@ -66,7 +66,8 @@ def status():
     return {
         "status": "ok",
         "openai": settings.openai_enabled,
-        "prices": bool(settings.data_gov_in_api_key),
+        "prices": True,  # data.gov.in sample key is used when none is configured
+        "prices_own_key": bool(settings.data_gov_in_api_key),
         "weather": bool(settings.openweather_api_key),
         "agro": bool(settings.agro_api_key),
     }

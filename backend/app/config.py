@@ -59,6 +59,12 @@ class Settings(BaseSettings):
         # Agromonitoring needs its own key; an OpenWeather key returns 401.
         return self.agro_api_key
 
+    @property
+    def data_gov_key(self) -> str:
+        # Fall back to data.gov.in's public sample key (rate-limited) so mandi
+        # prices work without registration. Set DATA_GOV_IN_API_KEY for your own.
+        return self.data_gov_in_api_key or "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b"
+
 
 @lru_cache
 def get_settings() -> Settings:
